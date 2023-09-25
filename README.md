@@ -15,16 +15,15 @@ Our code expects the input data format to be in csv format and we provide necess
 ```
 .
 ├── datasets
-│   ├── bdd100k
+│   ├── BDD100k
     |     ├── images
     |     |     ├── 10k
     |     |          ├── train
     |     |          ├── val
     |     |          ├── test
     |     ├── labels
-    |     |     ├── det20
-    |     |           ├── det_train.json
-    |     |           ├── det_val.json
+    |     |     ├── det_train.json
+    |     |     ├── det_val.json
     ├── gtFine
     |     ├── train
     |     ├── val
