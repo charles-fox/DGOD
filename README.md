@@ -22,8 +22,8 @@ Our code expects the input data format to be in csv format and we provide necess
     |     |          ├── val
     |     |          ├── test
     |     ├── labels
-    |     |     ├── det_train.json
-    |     |     ├── det_val.json
+    |     |     ├── ins_seg_train.json
+    |     |     ├── ins_seg_val.json
     ├── gtFine
     |     ├── train
     |     ├── val
