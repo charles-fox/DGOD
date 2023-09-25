@@ -8,8 +8,7 @@ We used the following datasets for our experiments.
 3. [Cityscapes](https://www.cityscapes-dataset.com/)
 4. [Indian Driving Dataset (IDD)](https://idd.insaan.iiit.ac.in/)
 
-Our code expects the input data format to be in csv format and we provide necessary helper functions to convert the annotations of all the above datasets into csv format. But we expect the users to download the datasets from respective websites and follow the file structure mentioned below so that the code can directly access the datasets. The file requirements.txt has all the dependencies needed to run this code. 
-ACDC, BDD100K, Cityscapes, and IDD need to be downloaded manually from their respective websites and arrange them in the following directory structure. Note that for BDD100K, we use the 10K split provided by the dataset for training our models. 
+Our code expects the input data format to be in csv format and we provide necessary helper functions to convert the annotations of all the above datasets into csv format. But we expect the users to download the datasets from respective websites and follow the file structure mentioned below so that the code can directly access the datasets. The file requirements.txt has all the dependencies needed to run this code. Note that for BDD100K, we use the 10K split provided by the dataset for training our models. 
 
 # Directory structure for datasets
 
@@ -55,9 +54,6 @@ ACDC, BDD100K, Cityscapes, and IDD need to be downloaded manually from their res
     |     ├── leftImg8bit
     |     |     ├── train
     |     |     ├── val
-    ├── gwhd_2021
-    |     ├── images
-    ├── downloads.sh
     ├── to_csv_conversion.sh
     ├── Annots
 ```
