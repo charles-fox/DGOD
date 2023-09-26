@@ -1,0 +1,29 @@
+# Requirements
+# Usage: pip install -r requirements.txt
+
+# Base ------------------------------------------------------------------------
+#gitpython
+#ipython  # interactive notebook
+matplotlib
+numpy
+opencv-python
+Pillow
+psutil  # system resources
+PyYAML
+requests
+scipy
+thop  # FLOPs computation
+torch  # see https://pytorch.org/get-started/locally (recommended)
+torchvision
+tqdm
+albumentations
+pytorch-lightning
+torchmetrics[detection]
+
+
+# Logging ---------------------------------------------------------------------
+tensorboard
+
+# Plotting --------------------------------------------------------------------
+pandas
+seaborn
