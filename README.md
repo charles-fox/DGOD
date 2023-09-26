@@ -24,14 +24,13 @@ Our code expects the input data format to be in csv format and we provide necess
     |     ├── labels
     |     |     ├── ins_seg_train.json
     |     |     ├── ins_seg_val.json
-    ├── gtFine
-    |     ├── train
-    |     ├── val
-    |     ├── test
-    ├── cityscapes_clear
-    |     ├── train
-    |     ├── val
-    |     ├── test
+    ├──  Cityscapes
+    |     ├── gtFine
+    |     |     ├── train
+    |     |     ├── val
+    |     ├── leftImg8bit
+    |     |     ├── train
+    |     |     ├── val
     ├── ACDC
     |     ├── gt_detection
     |     |       ├── fog
