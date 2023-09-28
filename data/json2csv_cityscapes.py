@@ -64,7 +64,7 @@ if __name__ == '__main__':
     categories = {'person':1, 'rider': 2,'car': 3,'truck': 4, 'bus':5, 'train':6, 'motorcycle':7, 'bicycle':8}
       
 
-  for (dirpath, dirnames, filenames) in walk('./cityscapes_'+args.weather): 
+  for (dirpath, dirnames, filenames) in walk('Cityscapes'): 
     split = dirpath.split('/')
     if(len(split) == 4):
       for f in filenames:
@@ -74,7 +74,7 @@ if __name__ == '__main__':
       
         imagename = imagename_split[0] + '_' + imagename_split[1] + '_' + imagename_split[2]  
 
-        json_name = './gtFine/'+split[2]+'/'+imagename_split[0]+'/'+imagename+'_gtFine_polygons.json'
+        json_name = 'Cityscapes/gtFine/'+split[2]+'/'+imagename_split[0]+'/'+imagename+'_gtFine_polygons.json'
         f = open(json_name)
         data = json.load(f)
         bboxes = []
@@ -104,30 +104,20 @@ if __name__ == '__main__':
       
         new_row = {'image_name':image_path, 'BoxesString': BoxesString, 'LabelsString': LabelsString}  
 
-        if(args.weather == 'foggy'):
-          if(imagename_split[6] == '0.02.png'):
-            if(split[2] == 'train'):
-              train_df = train_df.append(new_row, ignore_index=True)
-            elif(split[2] == 'val'):
-              val_df = val_df.append(new_row, ignore_index=True)
-            else:
-              continue
+        if(split[2] == 'train'):
+          train_df = pd.concat([train_df, pd.DataFrame.from_records([new_row])], ignore_index = True)
+        elif(split[2] == 'val'):
+          val_df = pd.concat([val_df, pd.DataFrame.from_records([new_row])], ignore_index = True)
         else:
-          if(split[2] == 'train'):
-            train_df = train_df.append(new_row, ignore_index=True)
-          elif(split[2] == 'val'):
-            val_df = val_df.append(new_row, ignore_index=True)
-          else:
-            continue
+          continue
         
           
 train_df = train_df.reset_index(drop=True)
 val_df = val_df.reset_index(drop=True)
 
-train_df.to_csv('./Annots/cityscapes_'+args.weather+'_'+args.category+'_train.csv')  
-val_df.to_csv('./Annots/cityscapes_'+args.weather+'_'+args.category+'_val.csv')
+train_df.to_csv('./Annots/cityscapes_train_'+args.category+'.csv')  
+val_df.to_csv('./Annots/cityscapes_val_'+args.category+'.csv')
 
-#print(train_obj_freq)
-#print(val_obj_freq)
-#print(train_df.head())
-#print(val_df.head())
+
+print(train_df.head())
+print(val_df.head())

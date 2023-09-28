@@ -92,10 +92,10 @@ if __name__ == '__main__':
     df = pd.concat([df, pd.DataFrame.from_records([new_row])], ignore_index = True)
 
 
-print(label_count)
-df = df.reset_index(drop=True)
-df.to_csv('./Annots/acdc_'+args.image_set+'_all.csv')
-print(df.head())
+  print(label_count)
+  df = df.reset_index(drop=True)
+  df.to_csv('./Annots/acdc_'+args.image_set+'_all.csv')
+  print(df.head())
 
   
 

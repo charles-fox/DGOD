@@ -1,5 +1,7 @@
-python json2csv_bdd100k_full.py
-echo BDD100K annotations are converted
+python json2csv_bdd10k.py --image_set train
+echo BDD10K train annotations are converted
+python json2csv_bdd10k.py --image_set val
+echo BDD10K val annotations are converted
 python json2csv_cityscapes.py --category all
 echo Cityscapes full annotations are converted
 python json2csv_acdc.py --image_set train

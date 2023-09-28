@@ -63,7 +63,7 @@ if __name__ == '__main__':
       bboxes = []
       labels = []
     
-      print(flname+'/'+fname)
+      #print(flname+'/'+fname)
       for item in data['objects']:
         if(item['label'] in labels_to_ind.keys()):
           label_count[item['label']] += 1
