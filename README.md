@@ -65,14 +65,14 @@ Once above directory structure is ensured, the following command needs to be exe
 The above command will generate the following csv files in Annots folder where a subset of them will be used by the detector during training. 
 
 ```
-1. acdc_train.csv
-2. acdc_val.csv
+1. acdc_train_all.csv
+2. acdc_val_all.csv
 3. bdd10k_train_all.csv
 4. bdd10k_val_all.csv
-5. cityscapes_clear_all_train.csv
-6. cityscapes_clear_all_val.csv
-7. idd_train.csv
-8. idd_val.csv
+5. cityscapes_train_all.csv
+6. cityscapes_val_all.csv
+7. idd_train_all.csv
+8. idd_val_all.csv
 ```
 
 
