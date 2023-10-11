@@ -73,7 +73,7 @@ if __name__ == '__main__':
         imagename_split = sub_split[-1].split('_')
       
         imagename = imagename_split[0] + '_' + imagename_split[1] + '_' + imagename_split[2]  
-
+        
         json_name = 'Cityscapes/gtFine/'+split[2]+'/'+imagename_split[0]+'/'+imagename+'_gtFine_polygons.json'
         f = open(json_name)
         data = json.load(f)
@@ -100,8 +100,8 @@ if __name__ == '__main__':
           
         BoxesString = encode_boxes(bboxes)
         LabelsString = encode_labels(labels)
-        image_path = imagename_split[0] + '/' + sub_split[-1]
-      
+        
+        image_path = imagename_split[0] + '/' + imagename + '_leftImg8bit.png'
         new_row = {'image_name':image_path, 'BoxesString': BoxesString, 'LabelsString': LabelsString}  
 
         if(split[2] == 'train'):
