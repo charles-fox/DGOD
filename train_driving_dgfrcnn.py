@@ -629,19 +629,19 @@ def parser_args():
                       default='non_dg', type=str)
                       
   parser.add_argument('--source_domains', dest='source_domains',
-                      help='',
+                      help='Source Domains provided as a string',
                       default='ABC', type=str)
                       
   parser.add_argument('--target_domains', dest='target_domains',
-                      help='',
+                      help='Target domains provided as string',
                       default='I', type=str)
   
   parser.add_argument('--weights_folder', dest='weights_folder',
-                      help='',
+                      help='Name of the weights folder',
                       default='ABC2I', type=str)
                       
   parser.add_argument('--weights_file', dest='weights_file',
-                      help='',
+                      help='Name of the weights file',
                       default='single_source_acdc', type=str)
 
   parser.add_argument('--reg_weights', nargs = 5, metavar=('a', 'b', 'c', 'd', 'e'), 
@@ -656,7 +656,7 @@ if __name__ == '__main__':
   
   NET_FOLDER = args.weights_folder
   
-  weights_file = args.weights_file  #dgfrcnn (1, 0.5, 0.1) v1--> (0.5, 0.5, 0.1) v2---> (0.5, 0.5, 0.5) v3---> (0.5, 0.5, 1) v4---> (0.5, 0.5, 0.5) learning rate 0.1*base_lr
+  weights_file = args.weights_file  
 
   if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
     detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
