@@ -13,7 +13,7 @@ import pandas as pd
 import random
 import cv2
 import matplotlib.pyplot as plt
-import argparser
+import argparse
 import os
 
 # Torch imports 
@@ -671,16 +671,16 @@ if __name__ == '__main__':
   domain_index = -1
   if 'a' in args.source_domains.lower():
     domain_index = domain_index + 1
-    tr_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/acdc_train.csv', root='/mnt/New/datasets/ACDC/rgb_anon/', transform=train_transform, domain=domain_index))
+    tr_datasets.append(DrivingDataset('data/Annots/acdc_train_all.csv', root='data/ACDC/rgb_anon/', transform=train_transform, domain=domain_index))
   if 'b' in args.source_domains.lower():
     domain_index = domain_index + 1
-    tr_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/bdd10k_train_all.csv', root='/mnt/New/datasets/BDD100K/images/10k/train/', transform=train_transform, domain=domain_index))
+    tr_datasets.append(DrivingDataset('data/Annots/bdd10k_train_all.csv', root='data/BDD100K/images/10k/train/', transform=train_transform, domain=domain_index))
   if 'c' in args.source_domains.lower():
     domain_index = domain_index + 1
-    tr_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/cityscapes1_clear_all_train.csv', root='/mnt/New/datasets/cityscapes_clear/train/', transform=train_transform, domain=domain_index))
+    tr_datasets.append(DrivingDataset('data/Annots/cityscapes_train_all.csv', root='data/Cityscapes/leftImg8bit/train/', transform=train_transform, domain=domain_index))
   if 'i' in args.source_domains.lower():
     domain_index = domain_index + 1
-    tr_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/idd_train.csv', root='/mnt/New/datasets/IDD/leftImg8bit/train/', transform=train_transform, domain=domain_index))
+    tr_datasets.append(DrivingDataset('data/Annots/idd_train_all.csv', root='data/IDD/leftImg8bit/train/', transform=train_transform, domain=domain_index))
   
   tr_dataset = torch.utils.data.ConcatDataset(tr_datasets) # Combine all the source domains with their respective domain_index for training
     
@@ -689,16 +689,16 @@ if __name__ == '__main__':
   domain_index = -1
   if 'a' in args.source_domains.lower():
     domain_index = domain_index + 1
-    vl_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/acdc_val.csv', root='/mnt/New/datasets/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
+    vl_datasets.append(DrivingDataset('data/Annots/acdc_val_all.csv', root='data/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
   if 'b' in args.source_domains.lower():
     domain_index = domain_index + 1
-    vl_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/bdd10k_val_all.csv', root='/mnt/New/datasets/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
+    vl_datasets.append(DrivingDataset('data/Annots/bdd10k_val_all.csv', root='data/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
   if 'c' in args.source_domains.lower():
     domain_index = domain_index + 1
-    vl_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/cityscapes1_clear_all_val.csv', root='/mnt/New/datasets/cityscapes_clear/val/', transform=val_transform, domain=domain_index))
+    vl_datasets.append(DrivingDataset('data/Annots/cityscapes_val_all.csv', root='data/Cityscapes/leftImg8bit/val/', transform=val_transform, domain=domain_index))
   if 'i' in args.source_domains.lower():
     domain_index = domain_index + 1
-    vl_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/idd_val.csv', root='/mnt/New/datasets/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
+    vl_datasets.append(DrivingDataset('data/Annots/idd_val_all.csv', root='data/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
   
   vl_dataset = torch.utils.data.ConcatDataset(vl_datasets) # Combine all the source domains with their respective domain_index for validation
   
@@ -707,23 +707,23 @@ if __name__ == '__main__':
   domain_index = -1
   if 'a' in args.target_domains.lower():
     domain_index = domain_index + 1
-    test_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/acdc_val.csv', root='/mnt/New/datasets/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
+    test_datasets.append(DrivingDataset('data/Annots/acdc_val_all.csv', root='data/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
   if 'b' in args.target_domains.lower():
     domain_index = domain_index + 1
-    test_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/bdd10k_val_all.csv', root='/mnt/New/datasets/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
+    test_datasets.append(DrivingDataset('data/Annots/bdd10k_val_all.csv', root='data/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
   if 'c' in args.target_domains.lower():
     domain_index = domain_index + 1
-    test_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/cityscapes1_clear_all_val.csv', root='/mnt/New/datasets/cityscapes_clear/val/', transform=val_transform, domain=domain_index))
+    test_datasets.append(DrivingDataset('data/Annots/cityscapes_val_all.csv', root='data/Cityscapes/leftImg8bit/val/', transform=val_transform, domain=domain_index))
   if 'i' in args.target_domains.lower():
     domain_index = domain_index + 1
-    test_datasets.append(DrivingDataset('/mnt/New/datasets/Annots/idd_val.csv', root='/mnt/New/datasets/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
+    test_datasets.append(DrivingDataset('data/Annots/idd_val_all.csv', root='data/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
   
   test_dataset = torch.utils.data.ConcatDataset(test_datasets) # Combine all the source domains with their respective domain_index for Testing
-
 
   val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
   test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
   
+  print(tr_datasets[0].domain, tr_datasets[1].domain, tr_datasets[2].domain)
   # Instantiating the detector
   detector = DGFRCNN(9, 8, args.exp, args.reg_weights) # Num classes + 1 and batch_size
 
