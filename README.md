@@ -14,7 +14,7 @@ Our code expects the input data format to be in csv format and we provide necess
 
 ```
 .
-├── datasets
+├── data
 │   ├── BDD100k
     |     ├── images
     |     |     ├── 10k
