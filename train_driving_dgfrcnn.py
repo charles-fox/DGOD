@@ -723,7 +723,6 @@ if __name__ == '__main__':
   val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
   test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
   
-  print(tr_datasets[0].domain, tr_datasets[1].domain, tr_datasets[2].domain)
   # Instantiating the detector
   detector = DGFRCNN(9, 8, args.exp, args.reg_weights) # Num classes + 1 and batch_size
 
