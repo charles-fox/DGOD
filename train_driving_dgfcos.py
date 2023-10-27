@@ -13,6 +13,7 @@ import pandas as pd
 import random
 import cv2
 import matplotlib.pyplot as plt
+import os
 
 # Torch imports 
 import torch
@@ -811,24 +812,120 @@ class DGFCOS(LightningModule):
           return torch.tensor(0.).cuda()
       
 
-NET_FOLDER = './DGFCOS_CIA2B'
-weights_file = 'best_fcos_dgfcos_v3_SGD' 
-import os
-detector = DGFCOS(9, 3)  #Numclasses and NUmdomains
-if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
+def parser_args():
+  parser = argparse.ArgumentParser(description='DGFRCNN Main Experiments')
+  parser.add_argument('--exp', dest='exp',
+                      help='non_dg or dg',
+                      default='non_dg', type=str)
+                      
+  parser.add_argument('--source_domains', dest='source_domains',
+                      help='Source Domains provided as a string',
+                      default='ABC', type=str)
+                      
+  parser.add_argument('--target_domains', dest='target_domains',
+                      help='Target domains provided as string',
+                      default='I', type=str)
+  
+  parser.add_argument('--weights_folder', dest='weights_folder',
+                      help='Name of the weights folder',
+                      default='ABC2I', type=str)
+                      
+  parser.add_argument('--weights_file', dest='weights_file',
+                      help='Name of the weights file',
+                      default='single_source_acdc', type=str)
+
+  parser.add_argument('--reg_weights', nargs = 5, metavar=('a', 'b', 'c', 'd', 'e'), 
+                       dest='reg_weights', help='Regularisation constats', type=float)
+                      
+  return parser.parse_args()
+
+if __name__ == '__main__':
+   
+   args = parser_args()
+  
+  NET_FOLDER = args.weights_folder
+  
+  weights_file = args.weights_file  
+
+ 
+  #detector = DGFCOS(9, 3)  #Numclasses and NUmdomains
+  
+  
+  # Dataloader design based on input arguments
+  # Training Dataset  
+  tr_datasets = []
+  domain_index = -1
+  if 'a' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    tr_datasets.append(DrivingDataset('data/Annots/acdc_train_all.csv', root='data/ACDC/rgb_anon/', transform=train_transform, domain=domain_index))
+  if 'b' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    tr_datasets.append(DrivingDataset('data/Annots/bdd10k_train_all.csv', root='data/BDD100K/images/10k/train/', transform=train_transform, domain=domain_index))
+  if 'c' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    tr_datasets.append(DrivingDataset('data/Annots/cityscapes_train_all.csv', root='data/Cityscapes/leftImg8bit/train/', transform=train_transform, domain=domain_index))
+  if 'i' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    tr_datasets.append(DrivingDataset('data/Annots/idd_train_all.csv', root='data/IDD/leftImg8bit/train/', transform=train_transform, domain=domain_index))
+  
+  tr_dataset = torch.utils.data.ConcatDataset(tr_datasets) # Combine all the source domains with their respective domain_index for training
+
+  # Validation Dataset
+    # Validation Dataset
+  vl_datasets = []
+  domain_index = -1
+  if 'a' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    vl_datasets.append(DrivingDataset('data/Annots/acdc_val_all.csv', root='data/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
+  if 'b' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    vl_datasets.append(DrivingDataset('data/Annots/bdd10k_val_all.csv', root='data/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
+  if 'c' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    vl_datasets.append(DrivingDataset('data/Annots/cityscapes_val_all.csv', root='data/Cityscapes/leftImg8bit/val/', transform=val_transform, domain=domain_index))
+  if 'i' in args.source_domains.lower():
+    domain_index = domain_index + 1
+    vl_datasets.append(DrivingDataset('data/Annots/idd_val_all.csv', root='data/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
+  
+  vl_dataset = torch.utils.data.ConcatDataset(vl_datasets) # Combine all the source domains with their respective domain_index for validation
+
+  # Test Dataset
+  test_datasets = []
+  domain_index = -1
+  if 'a' in args.target_domains.lower():
+    domain_index = domain_index + 1
+    test_datasets.append(DrivingDataset('data/Annots/acdc_val_all.csv', root='data/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
+  if 'b' in args.target_domains.lower():
+    domain_index = domain_index + 1
+    test_datasets.append(DrivingDataset('data/Annots/bdd10k_val_all.csv', root='data/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
+  if 'c' in args.target_domains.lower():
+    domain_index = domain_index + 1
+    test_datasets.append(DrivingDataset('data/Annots/cityscapes_val_all.csv', root='data/Cityscapes/leftImg8bit/val/', transform=val_transform, domain=domain_index))
+  if 'i' in args.target_domains.lower():
+    domain_index = domain_index + 1
+    test_datasets.append(DrivingDataset('data/Annots/idd_val_all.csv', root='data/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
+  
+  test_dataset = torch.utils.data.ConcatDataset(test_datasets) # Combine all the source domains with their respective domain_index for Testing
+
+  val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
+  test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
+
+  detector = DGFCOS(9, 8, args.exp, args.reg_weights) 
+
+  if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
+    detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
+  else:	
+    if not os.path.exists(NET_FOLDER):
+      mode = 0o777
+      os.mkdir(NET_FOLDER, mode)
+
+  early_stop_callback= EarlyStopping(monitor='val_acc', min_delta=0.00, patience=10, verbose=False, mode='max')
+  checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=NET_FOLDER, filename=weights_file)
+
+  trainer = Trainer(gpus=1, max_epochs=100, deterministic=False, callbacks=[checkpoint_callback, early_stop_callback], reload_dataloaders_every_n_epochs=1)#, num_sanity_val_steps=-1)
+  trainer.fit(detector, val_dataloaders=val_dataloader)
+
   detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
-else:	
-  if not os.path.exists(NET_FOLDER):
-    mode = 0o777
-    os.mkdir(NET_FOLDER, mode)
-
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-early_stop_callback= EarlyStopping(monitor='val_acc', min_delta=0.00, patience=10, verbose=False, mode='max')
-
-
-checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=NET_FOLDER, filename=weights_file)
-trainer = Trainer(gpus=1, max_epochs=100, deterministic=False, callbacks=[checkpoint_callback, early_stop_callback], reload_dataloaders_every_n_epochs=1)#, num_sanity_val_steps=-1)
-trainer.fit(detector, val_dataloaders=val_dataloader)
-
-
-	
+  trainer = Trainer(accelerator="gpu", max_epochs=0, num_sanity_val_steps=-1)
+  trainer.fit(detector, val_dataloaders=test_dataloader)
+    
