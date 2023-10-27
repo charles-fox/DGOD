@@ -658,13 +658,6 @@ if __name__ == '__main__':
   
   weights_file = args.weights_file  
 
-  if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
-    detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
-  else:	
-    if not os.path.exists(NET_FOLDER):
-      os.mkdir(NET_FOLDER, 0o777)
-
-
   # Dataloader design based on input arguments
   # Training Dataset  
   tr_datasets = []
@@ -725,6 +718,12 @@ if __name__ == '__main__':
   
   # Instantiating the detector
   detector = DGFRCNN(9, 8, args.exp, args.reg_weights) # Num classes + 1 and batch_size
+
+  if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
+    detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
+  else:	
+    if not os.path.exists(NET_FOLDER):
+      os.mkdir(NET_FOLDER, 0o777)
 
   
   early_stop_callback= EarlyStopping(monitor='val_acc', min_delta=0.00, patience=10, verbose=False, mode='max')
