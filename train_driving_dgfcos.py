@@ -14,6 +14,7 @@ import random
 import cv2
 import matplotlib.pyplot as plt
 import os
+import argparse
 
 # Torch imports 
 import torch
@@ -35,7 +36,7 @@ import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
 # Pytorch import
-from pytorch_lightning.core.lightning import LightningModule
+from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping
 from pytorch_lightning.callbacks import LearningRateMonitor
@@ -54,16 +55,23 @@ import torch.nn as nn
 from torch.autograd import Function
 import cv2
 
+torch.manual_seed(42)
+np.random.seed(42)
+random.seed(42)
+seed_everything(42)
+
 
 class DrivingDataset(Dataset):
-    #Dataset class applicable for BDD100K, Cityscapes and Foggycityscapes
+    #Dataset class applicable for BDD100K, Cityscapes, IDD and ACDC
     def __init__(self, csv_file, root, domain, transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
             root_dir (string): Directory with all the images.
+            domain (int): Domain label for an image. 
             transform (callable, optional): Optional data augmentation to be applied on a sample.
         """
+        
         self.csv_file = csv_file
         
         annotations = pd.read_csv(self.csv_file)
@@ -434,7 +442,7 @@ class DGFCOS(LightningModule):
         self.exp = exp
         self.reg_weights = reg_weights
       
-        self.detector = fcos.fcos_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes)
+        self.detector = fcos.fcos_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, trainable_backbone_layers=3)
           
         self.ImageDA = _ImageDA(self.n_domains)
         self.InsDA = _InstanceDA(self.n_domains)       
@@ -528,14 +536,8 @@ class DGFCOS(LightningModule):
       if self.mode == 0:
         temp_loss = []
         
-        #loss_dict = self.detector(imgs, targets)
-        #loss = loss_dict['classification'] + loss_dict['bbox_regression'] + loss_dict['bbox_ctrness'] 
-        
-        
-        for index in range(len(imgs)):
-          loss_dict = self.detector([imgs[index]], [targets[index]])
-          loss = loss_dict['classification'] + loss_dict['bbox_regression'] + loss_dict['bbox_ctrness'] 
-          temp_loss.append(loss)
+        loss_dict = self.detector(imgs, targets)
+        loss = loss_dict['classification'] + loss_dict['bbox_regression'] + loss_dict['bbox_ctrness'] 
         
               
         loss = torch.mean(torch.stack(temp_loss))
@@ -702,7 +704,7 @@ class DGFCOS(LightningModule):
  	""" 
       return {"loss": loss}#, "log": torch.stack(temp_loss).detach().cpu()}
 
-   def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx):
       
       img, boxes, labels, domain = batch
       
@@ -836,12 +838,12 @@ if __name__ == '__main__':
       os.mkdir(NET_FOLDER, mode)
 
   early_stop_callback= EarlyStopping(monitor='val_acc', min_delta=0.00, patience=10, verbose=False, mode='max')
-  checkpoint_callback = ModelCheckpoint(monitor='val_loss', dirpath=NET_FOLDER, filename=weights_file)
-
-  trainer = Trainer(gpus=1, max_epochs=100, deterministic=False, callbacks=[checkpoint_callback, early_stop_callback], reload_dataloaders_every_n_epochs=1)#, num_sanity_val_steps=-1)
+  checkpoint_callback = ModelCheckpoint(monitor='val_acc', dirpath=NET_FOLDER, filename=weights_file, mode='max')
+  
+  trainer = Trainer(accelerator="gpu", max_epochs=100, deterministic=False, callbacks=[checkpoint_callback, early_stop_callback], reload_dataloaders_every_n_epochs=1, num_sanity_val_steps=2)
   trainer.fit(detector, val_dataloaders=val_dataloader)
-
+  
+  
   detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
   trainer = Trainer(accelerator="gpu", max_epochs=0, num_sanity_val_steps=-1)
   trainer.fit(detector, val_dataloaders=test_dataloader)
-    
