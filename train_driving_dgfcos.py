@@ -62,16 +62,14 @@ seed_everything(42)
 
 
 class DrivingDataset(Dataset):
-    #Dataset class applicable for BDD100K, Cityscapes, IDD and ACDC
+    #Dataset class applicable for BDD100K, Cityscapes and Foggycityscapes
     def __init__(self, csv_file, root, domain, transform=None):
         """
         Args:
             csv_file (string): Path to the csv file with annotations.
             root_dir (string): Directory with all the images.
-            domain (int): Domain label for an image. 
             transform (callable, optional): Optional data augmentation to be applied on a sample.
         """
-        
         self.csv_file = csv_file
         
         annotations = pd.read_csv(self.csv_file)
@@ -97,28 +95,35 @@ class DrivingDataset(Dataset):
         # A few boxes in BDD100K are having incorrect annotations. The following two lines will 
         # aid in needed corrections. 
         
-        bboxes[:, 0] = np.clip(bboxes[:, 0], 0, img.shape[1]-1)
-        bboxes[:, 1] = np.clip(bboxes[:, 1], 0, img.shape[0]-1)
-        bboxes[:, 2] = np.clip(bboxes[:, 2], 1, img.shape[1]-1)
-        bboxes[:, 3] = np.clip(bboxes[:, 3], 1, img.shape[0]-1)
+        if(len(bboxes) > 0):
+          bboxes[:, 0] = np.clip(bboxes[:, 0], 0, img.shape[1]-1)
+          bboxes[:, 1] = np.clip(bboxes[:, 1], 0, img.shape[0]-1)
+          bboxes[:, 2] = np.clip(bboxes[:, 2], 1, img.shape[1]-1)
+          bboxes[:, 3] = np.clip(bboxes[:, 3], 1, img.shape[0]-1)
         
-        bboxes[:, 0][bboxes[:, 0] == bboxes[:, 2]] = bboxes[:, 0][bboxes[:, 0] == bboxes[:, 2]] - 1
-        bboxes[:, 1][bboxes[:, 1] == bboxes[:, 3]] = bboxes[:, 1][bboxes[:, 1] == bboxes[:, 3]] - 1
-        #bboxes[:, 2][bboxes[:, 0] == bboxes[:, 2]] = bboxes[:, 2][bboxes[:, 0] == bboxes[:, 2]] + 1
-        #bboxes[:, 3][bboxes[:, 1] == bboxes[:, 3]] = bboxes[:, 1][bboxes[:, 1] == bboxes[:, 3]] + 1       
+          bboxes[:, 0][bboxes[:, 0] == bboxes[:, 2]] = bboxes[:, 0][bboxes[:, 0] == bboxes[:, 2]] - 1
+          bboxes[:, 1][bboxes[:, 1] == bboxes[:, 3]] = bboxes[:, 1][bboxes[:, 1] == bboxes[:, 3]] - 1
+          #bboxes[:, 2][bboxes[:, 0] == bboxes[:, 2]] = bboxes[:, 2][bboxes[:, 0] == bboxes[:, 2]] + 1
+          #bboxes[:, 3][bboxes[:, 1] == bboxes[:, 3]] = bboxes[:, 1][bboxes[:, 1] == bboxes[:, 3]] + 1       
         
         transformed = self.transform(image=image,bboxes=bboxes,class_labels=labels) #Albumentations can transform images and boxes
         image = (transformed["image"]/255.0).float()
         bboxes = np.array(transformed["bboxes"])
         labels = transformed["class_labels"]
         
-        
         if len(bboxes) > 0:
-          bboxes = torch.stack([torch.tensor(item) for item in bboxes])
-          labels = torch.stack([torch.tensor(item) for item in labels])
+          bboxes = torch.tensor(bboxes)
+          labels = torch.tensor(labels)
         else:
           bboxes = torch.zeros((0,4))
-          labels = torch.zeros(1)        
+          labels = torch.tensor([])        
+          
+        #if len(bboxes) > 0:
+        #bboxes = torch.stack([torch.tensor(item) for item in bboxes])
+        #labels = torch.stack([torch.tensor(item) for item in labels])
+        #else:
+          #bboxes = torch.zeros((0,4))
+          #labels = torch.zeros(1)        
           
         return image, bboxes, labels, self.domain
 
@@ -144,7 +149,8 @@ class DrivingDataset(Dataset):
       Small method to decode the BoxesString
       """
       if BoxesString == "no_box":
-          return np.zeros((0,4))
+          #return np.zeros((0,4))
+          return np.array([])
       else:
           try:
               boxes =  np.array([np.array([float(i) for i in box.split(" ")])
@@ -493,8 +499,8 @@ class DGFCOS(LightningModule):
                                     {'params': self.InsClsPrime.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay}
                                       ],) 
       
-      lr_scheduler = {'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=5, threshold=0.0001, min_lr=0, eps=1e-08),
-                      'monitor': 'val_loss'}
+      lr_scheduler = {'scheduler': torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'max', factor=0.1, patience=5, threshold=0.0001, min_lr=0, eps=1e-08),
+                      'monitor': 'val_acc'}
       
       
       return [optimizer], [lr_scheduler]
@@ -534,32 +540,28 @@ class DGFCOS(LightningModule):
       #Detection using source images
       
       if self.mode == 0:
-        temp_loss = []
         
         loss_dict = self.detector(imgs, targets)
         loss = loss_dict['classification'] + loss_dict['bbox_regression'] + loss_dict['bbox_ctrness'] 
         
-              
-        loss = torch.mean(torch.stack(temp_loss))
         
-        
-                  
-        if(self.sub_mode == 0):
-          self.mode = 1
-          self.sub_mode = 1
-        elif(self.sub_mode == 1):
-          self.mode = 2
-          self.sub_mode = 2
-        elif(self.sub_mode == 2):
-          self.mode = 3
-          self.sub_mode = 3
-        elif(self.sub_mode == 3):
-          self.mode = 4
-          self.sub_mode = 4  
-        else:
-          self.sub_mode = 0
-          self.mode = 0
-        
+        if(self.exp == 'dg'):             
+          if(self.sub_mode == 0):
+            self.mode = 1
+            self.sub_mode = 1
+          elif(self.sub_mode == 1):
+            self.mode = 2
+            self.sub_mode = 2
+          elif(self.sub_mode == 2):
+            self.mode = 3
+            self.sub_mode = 3
+          elif(self.sub_mode == 3):
+            self.mode = 4
+            self.sub_mode = 4  
+          else:
+            self.sub_mode = 0
+            self.mode = 0
+
         
       elif(self.mode == 1):
         
