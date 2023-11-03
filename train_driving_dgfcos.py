@@ -173,7 +173,7 @@ train_transform = A.Compose(
     )
 
 val_transform = A.Compose([
-    #A.Resize(height=600, width=1200, p=1.0),
+    A.Resize(height=600, width=1200, p=1.0),
     ToTensorV2(p=1.0),
 ],p=1.0,bbox_params=A.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
 
@@ -567,6 +567,22 @@ class DGFCOS(LightningModule):
         
         loss_dict = {}
         temp_loss = []
+        
+        
+        _ = self.detector(imgs, targets)
+        
+        ImgDA_scores = self.ImageDA(self.base_feat)
+        
+        loss_dict['DA_img_loss'] = self.reg_weights[0]*F.cross_entropy(ImgDA_scores, batch[3])
+        
+        IDA_out = self.InsDA(self.ins_feat)	
+        
+        print(IDA_out.shape)
+        print(batch[3].repeat(IDA_out.shape[:2]).shape)
+        
+        #loss_dict['DA_ins_loss'] = self.reg_weights[1]*F.cross_entropy(IDA_out, batch[3].repeat(IDA_out.shape[0]).long())
+        
+        """
         for index in range(len(imgs)):
           _ = self.detector([imgs[index]], [targets[index]])
             
@@ -588,9 +604,10 @@ class DGFCOS(LightningModule):
           loss_dict['Cst_loss'] = self.reg_weights[2]*F.mse_loss(IDA_out, ImgDA_scores.unsqueeze(dim=-1).repeat(1, 1, IDA_out.shape[1]).permute(0, 2, 1))
           
           temp_loss.append(sum(loss1 for loss1 in loss_dict.values()))
-
+          loss = torch.mean(torch.stack(temp_loss))
+	"""
                
-        loss = torch.mean(torch.stack(temp_loss))
+        loss = loss_dict['DA_img_loss']
         self.mode = 0
               
       elif(self.mode == 2): #Without recording the gradients for detector, we need to update the weights for classifier weights
