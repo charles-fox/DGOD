@@ -459,9 +459,9 @@ class DGFCOS(LightningModule):
         self.log('val_acc', self.best_val_acc)
         self.metric = MeanAveragePrecision(iou_type="bbox", class_metrics=True, iou_thresholds = [0.5])   
 
-        self.base_lr = 2e-3 #Original base lr is 1e-4
+        self.base_lr = 1e-4 
         self.momentum = 0.9
-        self.weight_decay=0.0005
+        self.weight_decay=0.0001
         
         self.detector.backbone.body.register_forward_hook(self.store_backbone_out)        
         self.detector.head.register_forward_hook(self.store_head_input)  #For instance level features
@@ -485,14 +485,12 @@ class DGFCOS(LightningModule):
 
       
     def forward(self, imgs,targets=None):
-      # Torchvision FasterRCNN returns the loss during training 
-      # and the boxes during eval
       self.detector.eval()
       return self.detector(imgs)
     
     def configure_optimizers(self):
       
-      optimizer = torch.optim.SGD([{'params': self.detector.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
+      optimizer = torch.optim.Adam([{'params': self.detector.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
                                     {'params': self.ImageDA.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
                                     {'params': self.InsDA.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
                                     {'params': self.InsCls.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
@@ -576,41 +574,16 @@ class DGFCOS(LightningModule):
         loss_dict['DA_img_loss'] = self.reg_weights[0]*F.cross_entropy(ImgDA_scores, batch[3])
         
         IDA_out = self.InsDA(self.ins_feat)	
+        loss_dict['DA_ins_loss'] = self.reg_weights[1]*F.cross_entropy(IDA_out.permute(0, 2, 1), batch[3].unsqueeze(dim=-1).repeat(1, IDA_out.shape[1]).long())
         
-        print(IDA_out.shape)
-        print(batch[3].repeat(IDA_out.shape[:2]).shape)
+        loss_dict['Cst_loss'] = self.reg_weights[2]*F.mse_loss(ImgDA_scores.unsqueeze(dim=1).repeat(1, IDA_out.shape[1], 1), IDA_out)
         
-        #loss_dict['DA_ins_loss'] = self.reg_weights[1]*F.cross_entropy(IDA_out, batch[3].repeat(IDA_out.shape[0]).long())
-        
-        """
-        for index in range(len(imgs)):
-          _ = self.detector([imgs[index]], [targets[index]])
-            
-          ImgDA_scores = self.ImageDA(self.base_feat)
-          one_hot_labels = torch.zeros(ImgDA_scores.shape)
-          one_hot_labels[0, batch[3][0]] = 1
-          loss_dict['DA_img_loss'] = self.reg_weights[0]*sigmoid_focal_loss(ImgDA_scores, one_hot_labels.cuda(), reduction="mean")
-          
-          #loss_dict['DA_img_loss'] = F.cross_entropy(ImgDA_scores, torch.unsqueeze(batch[3][index], 0))
-          
-          IDA_out = self.InsDA(self.ins_feat)	
-          inp = IDA_out.permute(0, 2, 1)
-          one_hot_labels = torch.zeros(inp.shape)
-          one_hot_labels[0, batch[3][0], :] = 1
-          #loss_dict['DA_ins_loss'] = 0.1*F.cross_entropy(IDA_out, batch[3][index].repeat(IDA_out.shape[0]).long())
-          
-          loss_dict['DA_ins_loss'] = self.reg_weights[1]*sigmoid_focal_loss(inp, one_hot_labels.cuda(), reduction="mean")
-          #loss_dict['Cst_loss'] = 0.1*F.mse_loss(IDA_out, ImgDA_scores[0].repeat(IDA_out.shape[0],1))
-          loss_dict['Cst_loss'] = self.reg_weights[2]*F.mse_loss(IDA_out, ImgDA_scores.unsqueeze(dim=-1).repeat(1, 1, IDA_out.shape[1]).permute(0, 2, 1))
-          
-          temp_loss.append(sum(loss1 for loss1 in loss_dict.values()))
-          loss = torch.mean(torch.stack(temp_loss))
-	"""
                
-        loss = loss_dict['DA_img_loss']
+        loss = sum(loss for loss in loss_dict.values())
         self.mode = 0
               
       elif(self.mode == 2): #Without recording the gradients for detector, we need to update the weights for classifier weights
+        """
         loss_dict = {}
         loss = []
 
@@ -637,15 +610,16 @@ class DGFCOS(LightningModule):
 
         for index in range(len(imgs)):
           with torch.no_grad():
-            _ = self.detector([imgs[index]], [targets[index]])
-          cls_scores = self.InsCls[batch[3][index].item()](self.box_features)
-          loss.append(F.cross_entropy(cls_scores, self.box_labels[0])) 
+            temp_dict = self.detector([imgs[index]], [targets[index]])
+          cls_scores = self.InsCls[batch[3][index].item()](self.ins_feat)
+          loss.append(F.cross_entropy(cls_scores, temp_dict['gt_classes'])) 
 
-        loss_dict['cls'] = 0.001*(torch.mean(torch.stack(loss)))
+        loss_dict['cls'] = self.reg_weights[4]*(torch.mean(torch.stack(loss)))
         loss = sum(loss for loss in loss_dict.values())
-        """
+        
         self.mode = 0
       elif(self.mode == 3): #Only the GRL Classification should influence the updates but here we need to update the detector weights as well
+        """
         loss_dict = {}
         loss = []
     
@@ -664,16 +638,17 @@ class DGFCOS(LightningModule):
         loss = []
     
         for index in range(len(imgs)):
-          _ = self.detector([imgs[index]], [targets[index]])
-          cls_scores = self.InsClsPrime[batch[3][index].item()](self.box_features)
-          loss.append(F.cross_entropy(cls_scores, self.box_labels[0]))
+          temp_dict = self.detector([imgs[index]], [targets[index]])
+          cls_scores = self.InsClsPrime[batch[3][index].item()](self.ins_feat)
+          loss.append(F.cross_entropy(cls_scores, temp_dict['gt_classes']))
   	  
-        loss_dict['cls_prime'] = 0.05*(torch.mean(torch.stack(loss)))
+        loss_dict['cls_prime'] = self.reg_weights[3]*(torch.mean(torch.stack(loss)))
         loss = sum(loss for loss in loss_dict.values())
 
         self.mode = 0
-        """
+        
       else: #For Mode 4
+        """
         loss_dict = {}
         loss = []
         consis_loss = []
@@ -700,27 +675,26 @@ class DGFCOS(LightningModule):
         """
         loss_dict = {}
         loss = []
-        consis_loss = []
         
-        for index in range(18):
+        
+        for index in range(len(self.InsCls)):
           for param in self.InsCls[index].parameters(): param.requires_grad = False
         
         for index in range(len(imgs)):
-          _ = self.detector([imgs[index]], [targets[index]])
-          temp = []
-          for i in range(18):
+          temp_dict = self.detector([imgs[index]], [targets[index]])
+          
+          for i in range(len(self.InsCls)):
             if(i != batch[3][index].item()):
-              cls_scores = self.InsCls[i](self.box_features)
-              temp.append(cls_scores)
-              loss.append(F.cross_entropy(cls_scores, self.box_labels[0]))
-          consis_loss.append(torch.mean(torch.abs(torch.stack(temp, dim=0) - torch.mean(torch.stack(temp, dim=0), dim=0))))
+              cls_scores = self.InsCls[i](self.ins_feat)    
+              loss.append(F.cross_entropy(cls_scores, temp_dict['gt_classes']))
+          
 
-        loss_dict['cls'] = 0.001*(torch.mean(torch.stack(loss))) # + torch.mean(torch.stack(consis_loss)))
+        loss_dict['cls'] = self.reg_weights[4]*(torch.mean(torch.stack(loss))) # + torch.mean(torch.stack(consis_loss)))
         loss = sum(loss for loss in loss_dict.values())
         
         self.mode = 0
         self.sub_mode = 0
- 	""" 
+ 	 
       return {"loss": loss}#, "log": torch.stack(temp_loss).detach().cpu()}
 
     def validation_step(self, batch, batch_idx):
