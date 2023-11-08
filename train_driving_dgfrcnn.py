@@ -572,22 +572,19 @@ class DGFRCNN(LightningModule):
       
         loss_dict = {}
         loss = []
-        consis_loss = []
         
         for index in range(self.num_domains):
           for param in self.InsCls[index].parameters(): param.requires_grad = False
         
         for index in range(len(imgs)):
           _ = self.detector([imgs[index]], [targets[index]])
-          temp = []
+          
           for i in range(self.num_domains):
             if(i != batch[3][index].item()):
               cls_scores = self.InsCls[i](self.box_features)
-              temp.append(cls_scores)
               loss.append(F.cross_entropy(cls_scores, self.box_labels[0]))
-          consis_loss.append(torch.mean(torch.abs(torch.stack(temp, dim=0) - torch.mean(torch.stack(temp, dim=0), dim=0))))
 
-        loss_dict['cls'] = self.reg_weights[4]*(torch.mean(torch.stack(loss))) # + torch.mean(torch.stack(consis_loss)))
+        loss_dict['cls'] = self.reg_weights[4]*(torch.mean(torch.stack(loss))) 
         loss = sum(loss for loss in loss_dict.values())
         
         self.mode = 0
