@@ -76,7 +76,7 @@ The above command will generate the following csv files in Annots folder where a
 ```
 
 
-# Training the Faster R-CNN
+# Training the Faster R-CNN and FCOS for Driving Datasets
 
 We recommend the users to use '[Anaconda'](https://docs.anaconda.com/anaconda/install/linux/) to create a virtual environment. The following command can be used to create a new environment needed for replicating the results in this paper. 
 ```
@@ -93,5 +93,23 @@ We recommend to use the following command to install all the dependencies inside
 pip install -r requirements.txt
 ```
 
-In this code, we need to train additional domain specific classifiers for which we need the access to ground truth labels of each identified region proposal. We have made minor changes to the Faster-RCNN implementation in [WilDS](https://github.com/p-lambda/wilds/tree/main/examples/models/detection) to obtain the ground truth labels of each region proposal. We initialise our ResNet backbone with COCO pretrained weights. We use the Pytorch-Lightning framework to train our model. 
+In this code, we need to train additional domain specific classifiers for which we need the access to ground truth labels of each identified region proposal. We have made minor changes to the Faster-RCNN implementation in [WilDS](https://github.com/p-lambda/wilds/tree/main/examples/models/detection) and [Torchvision's FCOS](https://github.com/pytorch/vision/blob/main/torchvision/models/detection/fcos.py)  to obtain the ground truth labels corresponding to each instance level features. We initialise our ResNet backbone with COCO pretrained weights. We use the Pytorch-Lightning framework to train our model. 
+
+The following are the sample commands that can be used to train the Faster R-CNN in non-dg and dg modes, respectively. 
+```
+python train_driving_dgfrcnn.py --exp non_dg --source_domains A  --target_domains I --weights_folder ABC2I --weights_file singlebest_a2c_frcnn 
+python train_driving_dgfrcnn.py --exp dg --source_domains ABC  --target_domains I --weights_folder ABC2I --weights_file abc2i_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
+```
+
+The following are the sample commands that can be used to train the FCOS in non-dg and dg modes, respectively. 
+```
+python train_driving_dgfcos.py --exp non_dg --source_domains A  --target_domains I --weights_folder ABC2I --weights_file singlebest_a2c_frcnn 
+python train_driving_dgfcos.py --exp dg --source_domains ABC  --target_domains I --weights_folder ABC2I --weights_file abc2i_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
+```
+
+It is important to note that, 'dg' mode needs more than one source domains else it might run into errors. 
+
+
+
+
 
