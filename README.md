@@ -93,7 +93,7 @@ We recommend to use the following command to install all the dependencies inside
 pip install -r requirements.txt
 ```
 
-In this code, we need to train additional domain specific classifiers for which we need the access to ground truth labels of each identified region proposal. We have made minor changes to the Faster-RCNN implementation in [WilDS](https://github.com/p-lambda/wilds/tree/main/examples/models/detection) and [Torchvision's FCOS](https://github.com/pytorch/vision/blob/main/torchvision/models/detection/fcos.py)  to obtain the ground truth labels corresponding to each instance level features. We initialise our ResNet backbone with COCO pretrained weights. We use the Pytorch-Lightning framework to train our model. 
+In this code, we need to train additional domain specific classifiers for which we need the access to ground truth labels of each identified region proposal. We have made minor changes to the Faster-RCNN implementation in [WilDS](https://github.com/p-lambda/wilds/tree/main/examples/models/detection) and [Torchvision's FCOS](https://github.com/pytorch/vision/blob/main/torchvision/models/detection/fcos.py)  to obtain the ground truth labels corresponding to each instance level features. We initialize our backbone networks with ImageNet pretrained weights. We use the Pytorch-Lightning framework to train our model. 
 
 The following are the sample commands that can be used to train the Faster R-CNN in non-dg and dg modes, respectively. 
 ```
