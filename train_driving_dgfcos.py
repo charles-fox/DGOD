@@ -23,7 +23,6 @@ import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
 import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import torchvision.transforms as transforms
 from torchvision.ops.boxes import box_iou
 from torchvision.models.detection._utils import Matcher
@@ -727,7 +726,7 @@ class DGFCOS(LightningModule):
       
 
 def parser_args():
-  parser = argparse.ArgumentParser(description='DGFRCNN Main Experiments')
+  parser = argparse.ArgumentParser(description='DGFCOS Main Experiments')
   parser.add_argument('--exp', dest='exp',
                       help='non_dg or dg',
                       default='non_dg', type=str)
