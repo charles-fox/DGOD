@@ -97,14 +97,14 @@ In this code, we need to train additional domain specific classifiers for which 
 
 The following are the sample commands that can be used to train the Faster R-CNN in non-dg and dg modes, respectively. 
 ```
-python train_driving_dgfrcnn.py --exp non_dg --source_domains A  --target_domains I --weights_folder ABC2I --weights_file singlebest_a2c_frcnn 
+python train_driving_dgfrcnn.py --exp non_dg --source_domains A  --target_domains I --weights_folder ABC2I --weights_file singlebest_a2i_frcnn 
 python train_driving_dgfrcnn.py --exp dg --source_domains ABC  --target_domains I --weights_folder ABC2I --weights_file abc2i_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
 ```
 
 The following are the sample commands that can be used to train the FCOS in non-dg and dg modes, respectively. 
 ```
-python train_driving_dgfcos.py --exp non_dg --source_domains A  --target_domains I --weights_folder ABC2I --weights_file singlebest_a2c_frcnn 
-python train_driving_dgfcos.py --exp dg --source_domains ABC  --target_domains I --weights_folder ABC2I --weights_file abc2i_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
+python train_driving_dgfcos.py --exp non_dg --source_domains A  --target_domains I --weights_folder ABC2I --weights_file singlebest_a2i_fcos
+python train_driving_dgfcos.py --exp dg --source_domains ABC  --target_domains I --weights_folder ABC2I --weights_file abc2i_dgfcos --reg_weights 0.5 0.5 0.5 0.05 0.0001
 ```
 
 It is important to note that, 'dg' mode needs more than one source domains else it might run into errors. 
