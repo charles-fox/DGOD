@@ -1,20 +1,23 @@
 #!/usr/bin/python -tt
+
+#Example run:
+# python3 train_driving_dgfrcnn.py --exp dg --source_domains AC --target_domains A --weights_folder AC2A --weights_file ac2a_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
+#Here, A,B,C refer to the datasets ADCD, DCC100K and Cityscapes.   
+#This command trains on datasets A and C and runs on dataset A.
+
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 # Common imports
-import math
-import sys
-import time
+import math, sys, time, random, os
 from tqdm.notebook import tqdm
 import numpy as np
 from pathlib import Path
 import pandas as pd
-import random
 import cv2
 import matplotlib.pyplot as plt
 import argparse
-import os
 
 # Torch imports 
 import torch
@@ -42,17 +45,12 @@ from pytorch_lightning.callbacks import Callback, ModelCheckpoint
 from torch.utils.data import Subset, WeightedRandomSampler
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-import random
-import torch
 import torch.nn.functional as F
 from torch.autograd import Variable
 import torchvision.models as models
 from torch.autograd import Variable
-import numpy as np
 #from model.utils.config import cfg
-import torch.nn as nn
 from torch.autograd import Function
-import cv2
 
 
 torch.manual_seed(42)
