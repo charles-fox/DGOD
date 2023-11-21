@@ -81,17 +81,13 @@ This will generate the following csv files in Annots folder where a subset of th
 
 # Model install and setup
 
-We recommend the users to use '[Anaconda'](https://docs.anaconda.com/anaconda/install/linux/) to create a virtual environment. The following command can be used to create a new environment needed for replicating the results in this paper. 
+We recommend to use '[Anaconda'](https://docs.anaconda.com/anaconda/install/linux/) to create a self-contained python environment for the models. Using anaconda, the following creates then activates a new environment:
 ```
 conda create -n DGOD python
-```
-
-Once the environment is succesfully created, it needs to be activated using the following command. 
-```
 conda activate DGOD
 ```
 
-We recommend to use the following command to install all the dependencies inside the DGFRCNN environment
+Inside the environmnent, the following installs the required dependencies,
 ```
 pip install -r requirements.txt
 ```
@@ -99,12 +95,12 @@ pip install -r requirements.txt
 (If not using conda but you have a typical pytorch setup, you will need to install the remaining dependencies such as
 ```
 pip3 install torchmetrics albumentations pytorch_lightning pycocotools
-'''
+```
 )
 
 # Running the models
 
-In this code, we need to train additional domain specific classifiers for which we need the access to ground truth labels of each identified region proposal. We have made minor changes to the Faster-RCNN implementation in [WilDS](https://github.com/p-lambda/wilds/tree/main/examples/models/detection) and [Torchvision's FCOS](https://github.com/pytorch/vision/blob/main/torchvision/models/detection/fcos.py)  to obtain the ground truth labels corresponding to each instance level features. We initialize our backbone networks with ImageNet pretrained weights. We use the Pytorch-Lightning framework to train our model. 
+The code trains additional domain-specific classifiers for which we need the access to ground truth labels of each identified region proposal. We have made minor changes to the Faster-RCNN implementation in [WilDS](https://github.com/p-lambda/wilds/tree/main/examples/models/detection) and [Torchvision's FCOS](https://github.com/pytorch/vision/blob/main/torchvision/models/detection/fcos.py)  to obtain the ground truth labels corresponding to each instance level features. We initialize our backbone networks with ImageNet pretrained weights. We use the Pytorch-Lightning framework to train our model. 
 
 The following are the sample commands that can be used to train the Faster R-CNN in non-dg and dg modes, respectively. 
 ```
