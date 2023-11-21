@@ -5,11 +5,8 @@
 #Here, A,B,C refer to the datasets ADCD, DCC100K and Cityscapes.   
 #This command trains on datasets A and C and runs on dataset A.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
-# Common imports
 import math, sys, time, random, os
 from tqdm.notebook import tqdm
 import numpy as np
@@ -19,44 +16,36 @@ import cv2
 import matplotlib.pyplot as plt
 import argparse
 
-# Torch imports 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset, WeightedRandomSampler
+from torch.autograd import Variable, Function
 
 import torchvision
-from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+import torchvision.models as models
 import torchvision.transforms as transforms
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.ops.boxes import box_iou
 from torchvision.models.detection._utils import Matcher
 from torchvision.ops import nms, box_convert
-import torch.nn.functional as F
 from torchmetrics.detection import MeanAveragePrecision
 
-# Albumentations is used for the Data Augmentation
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-# Pytorch import
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint
-from torch.utils.data import Subset, WeightedRandomSampler
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torchvision.models as models
-from torch.autograd import Variable
-#from model.utils.config import cfg
-from torch.autograd import Function
 
 
-torch.manual_seed(42)
-np.random.seed(42)
-random.seed(42)
-seed_everything(42)
+SEED=42
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+random.seed(SEED)
+seed_everything(SEED)
 
 class DrivingDataset(Dataset):
     #Dataset class applicable for BDD100K, Cityscapes and Foggycityscapes
