@@ -1,66 +1,49 @@
 #!/usr/bin/python -tt
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-# Common imports
-import math
-import sys
-import time
+
+
+
+from __future__ import absolute_import, division, print_function
+
+import math, sys, time, random, os
 from tqdm.notebook import tqdm
 import numpy as np
 from pathlib import Path
-import pandas as pd
-import random
-import cv2
 import matplotlib.pyplot as plt
-import os
 import argparse
 
-# Torch imports 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, Subset, WeightedRandomSampler
+from torch.autograd import Variable, Function
 
 import torchvision
+import torchvision.models as models
 import torchvision.transforms as transforms
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.ops.boxes import box_iou
 from torchvision.models.detection._utils import Matcher
 from torchvision.ops import nms, box_convert
-import torch.nn.functional as F
 from torchmetrics.detection import MeanAveragePrecision
 
-# Albumentations is used for the Data Augmentation
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 
-# Pytorch import
 from pytorch_lightning.core.module import LightningModule
 from pytorch_lightning import Trainer, seed_everything
-from pytorch_lightning.callbacks import Callback, ModelCheckpoint, EarlyStopping
-from pytorch_lightning.callbacks import LearningRateMonitor
-from torch.utils.data import Subset, WeightedRandomSampler
+from pytorch_lightning.callbacks import Callback, ModelCheckpoint
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 
-import random
-import torch
-import torch.nn.functional as F
-from torch.autograd import Variable
-import torchvision.models as models
-from torch.autograd import Variable
-import numpy as np
-#from model.utils.config import cfg
-import torch.nn as nn
-from torch.autograd import Function
-import cv2
 
 from DrivingDataset import *
 
 
-torch.manual_seed(42)
-np.random.seed(42)
-random.seed(42)
-seed_everything(42)
+SEED=42
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+random.seed(SEED)
+seed_everything(SEED)
 
 
 train_transform = A.Compose(
@@ -74,7 +57,7 @@ train_transform = A.Compose(
     )
 
 val_transform = A.Compose([
-    A.Resize(height=600, width=1200, p=1.0),
+    A.Resize(height=600, width=1200, p=1.0),      ##CF: this is commented out in FRCNN version, why?
     ToTensorV2(p=1.0),
 ],p=1.0,bbox_params=A.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
 
