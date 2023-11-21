@@ -96,6 +96,11 @@ We recommend to use the following command to install all the dependencies inside
 pip install -r requirements.txt
 ```
 
+(If not using conda but you have a typical pytorch setup, you will need to install the remaining dependencies such as
+```
+pip3 install torchmetrics albumentations pytorch_lightning pycocotools
+'''
+)
 
 # Running the models
 
