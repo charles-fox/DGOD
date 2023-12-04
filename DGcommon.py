@@ -45,9 +45,9 @@ def grad_reverse(x):
     return GRLayer.apply(x)
     
     
-class _ImageDAFPN(torch.nn.Module):
+class ImageDAFPN(torch.nn.Module):
     def __init__(self,dim,num_domains):
-        super(_ImageDAFPN,self).__init__()
+        super(ImageDAFPN,self).__init__()
         self.dim=dim  # feat layer          256*H*W for vgg16
         self.num_domains = num_domains
         self.Conv1 = nn.Conv2d(256, 256, 3, stride=(2,4))
@@ -81,9 +81,9 @@ class _ImageDAFPN(torch.nn.Module):
         return x
         
         
-class _ImageDA(torch.nn.Module):
+class ImageDA(torch.nn.Module):
     def __init__(self,dim,num_domains):		              #dim is different from FCOS  -- but isnt used
-        super(_ImageDA,self).__init__()
+        super(ImageDA,self).__init__()
         self.dim=dim  # feat layer          256*H*W for vgg16
         self.num_domains = num_domains
         self.Conv1 = nn.Conv2d(2048, 1024, 3, stride=(2,4))
@@ -111,4 +111,4 @@ class _ImageDA(torch.nn.Module):
         x=self.reLu(self.linear1(x))
         x=torch.sigmoid(self.linear2(x))
         return x
-        
+          

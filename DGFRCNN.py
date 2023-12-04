@@ -1,9 +1,9 @@
 from DGcommon import *
 import fasterrcnn
 
-class _InstanceDA(torch.nn.Module):
+class InstanceDA(torch.nn.Module):
     def __init__(self, num_domains):
-        super(_InstanceDA,self).__init__()
+        super(InstanceDA,self).__init__()
         self.num_domains = num_domains
         self.dc_ip1 = nn.Linear(1024, 512)     
         self.dc_relu1 = nn.ReLU()
@@ -22,9 +22,9 @@ class _InstanceDA(torch.nn.Module):
         x=torch.sigmoid(self.classifer(x))      #different from FCOS  
         return x
 
-class _InsClsPrime(torch.nn.Module):
+class InsClsPrime(torch.nn.Module):
     def __init__(self, num_cls):
-        super(_InsClsPrime,self).__init__()
+        super(InsClsPrime,self).__init__()
         self.num_cls = num_cls
         self.dc_ip1 = nn.Linear(1024, 512)    #different sizes from FCOS
         self.dc_relu1 = nn.ReLU()
@@ -43,9 +43,9 @@ class _InsClsPrime(torch.nn.Module):
         x=torch.sigmoid(self.classifer(x))
         return x
 
-class _InsCls(torch.nn.Module):
+class InsCls(torch.nn.Module):
     def __init__(self, num_cls):
-        super(_InsCls,self).__init__()
+        super(InsCls,self).__init__()
         self.num_cls = num_cls
         self.dc_ip1 = nn.Linear(1024, 512)      #different sizes from FCOS
         self.dc_relu1 = nn.ReLU()
@@ -82,10 +82,10 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
         self.reg_weights = reg_weights
         
         self.detector = fasterrcnn.fasterrcnn_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, pretrained=True, trainable_backbone_layers=3)
-        self.ImageDA = _ImageDAFPN(256, self.num_domains)
-        self.InsDA = _InstanceDA(self.num_domains)       
-        self.InsCls = nn.ModuleList([_InsCls(n_classes) for i in range(self.num_domains)])
-        self.InsClsPrime = nn.ModuleList([_InsClsPrime(n_classes) for i in range(self.num_domains)])
+        self.ImageDA = ImageDAFPN(256, self.num_domains)
+        self.InsDA = InstanceDA(self.num_domains)       
+        self.InsCls = nn.ModuleList([InsCls(n_classes) for i in range(self.num_domains)])
+        self.InsClsPrime = nn.ModuleList([InsClsPrime(n_classes) for i in range(self.num_domains)])
         
         self.base_lr = 2e-3 #Original base lr is 1e-4
         self.momentum = 0.9

@@ -1,8 +1,8 @@
 from DGcommon import *
     
-class _InstanceDA(nn.Module):
+class InstanceDA(nn.Module):
     def __init__(self, num_domains):
-        super(_InstanceDA,self).__init__()
+        super(InstanceDA,self).__init__()
         self.num_domains = num_domains
         self.dc_ip1 = nn.Linear(256, 128)
         self.dc_relu1 = nn.ReLU()
@@ -15,9 +15,9 @@ class _InstanceDA(nn.Module):
         x=torch.sigmoid(self.classifer(x))
         return x
 
-class _InsClsPrime(nn.Module):
+class InsClsPrime(nn.Module):
     def __init__(self, num_cls):
-        super(_InsClsPrime,self).__init__()
+        super(InsClsPrime,self).__init__()
         self.num_cls = num_cls
         self.dc_ip1 = nn.Linear(256, 128)
         self.dc_relu1 = nn.ReLU()
@@ -36,9 +36,9 @@ class _InsClsPrime(nn.Module):
         x=torch.sigmoid(self.classifer(x))
         return x
 
-class _InsCls(nn.Module):
+class InsCls(nn.Module):
     def __init__(self, num_cls):
-        super(_InsCls,self).__init__()
+        super(InsCls,self).__init__()
         self.num_cls = num_cls
         self.dc_ip1 = nn.Linear(256, 128)
         self.dc_relu1 = nn.ReLU()
@@ -120,10 +120,10 @@ class DGFCOS(pytorch_lightning.core.module.LightningModule):
       
         self.detector = fcos.fcos_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, trainable_backbone_layers=3)
           
-        self.ImageDA = _ImageDA(self.n_domains)
-        self.InsDA = _InstanceDA(self.n_domains)       
-        self.InsCls = nn.ModuleList([_InsCls(self.n_classes) for i in range(self.n_domains)])
-        self.InsClsPrime = nn.ModuleList([_InsClsPrime(self.n_classes) for i in range(self.n_domains)])
+        self.ImageDA = ImageDA(self.n_domains)
+        self.InsDA = InstanceDA(self.n_domains)       
+        self.InsCls = nn.ModuleList([InsCls(self.n_classes) for i in range(self.n_domains)])
+        self.InsClsPrime = nn.ModuleList([InsClsPrime(self.n_classes) for i in range(self.n_domains)])
     
         self.best_val_acc = 0
         self.log('val_acc', self.best_val_acc)
