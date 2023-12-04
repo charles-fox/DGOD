@@ -130,7 +130,7 @@ if __name__ == '__main__':
         bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20)
     )
 
-  mymodel="DGRCNN"   #TODO make this a cmd line arg
+  mymodel="DGFCOS"   #TODO make this a cmd line arg
 
   if mymodel=="DGRCNN":
       val_transform = albumentations.Compose([

@@ -81,15 +81,16 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
         self.exp = exp
         self.reg_weights = reg_weights
         
-        self.detector = fasterrcnn.fasterrcnn_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, pretrained=True, trainable_backbone_layers=3)
-        self.ImageDA = ImageDAFPN(256, self.num_domains)
+        self.detector = fasterrcnn.fasterrcnn_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, pretrained=True, trainable_backbone_layers=3)               # different from FCOS, using FRCNN detector
+        
+        self.ImageDA = ImageDAFPN(256, self.num_domains)    # different from FCOS, using DAFPN rather than DA
         self.InsDA = InstanceDA(self.num_domains)       
         self.InsCls = nn.ModuleList([InsCls(n_classes) for i in range(self.num_domains)])
         self.InsClsPrime = nn.ModuleList([InsClsPrime(n_classes) for i in range(self.num_domains)])
         
-        self.base_lr = 2e-3 #Original base lr is 1e-4
+        self.base_lr = 2e-3 #Original base lr is 1e-4		# different from FCOS
         self.momentum = 0.9
-        self.weight_decay=0.0005
+        self.weight_decay=0.0005				# different from FCOS
         
         self.best_val_acc = 0
         self.log('val_acc', self.best_val_acc)
@@ -101,19 +102,19 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
         self.mode = 0
         self.sub_mode = 0
       
-    def store_ins_features(self, module, input1, output):
+    def store_ins_features(self, module, input1, output):     #not in FCOS
       self.box_features = output
       self.box_labels = input1[1]
             
-    def store_backbone_out(self, module, input1, output):
+    def store_backbone_out(self, module, input1, output):      #different from FCOS
       self.base_feat = output
 
-    def forward(self, imgs,targets=None):
+    def forward(self, imgs,targets=None):		#same as FCOS
       # Torchvision FasterRCNN returns the loss during training  and the boxes during eval
       self.detector.eval()
       return self.detector(imgs)
     
-    def configure_optimizers(self):
+    def configure_optimizers(self):                #all same as FCOS
       optimizer = torch.optim.SGD([{'params': self.detector.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
                                     {'params': self.ImageDA.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
                                     {'params': self.InsDA.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
@@ -124,7 +125,7 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
                       'monitor': 'val_acc'}
       return [optimizer], [lr_scheduler]
     
-    def train_dataloader(self):
+    def train_dataloader(self):				#all SAME as FCOS
       num_train_sample_batches = len(self.tr_dataset)//self.batch_size
       temp_indices = np.array([i for i in range(len(self.tr_dataset))])
       np.random.shuffle(temp_indices)
@@ -174,15 +175,16 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
         
       elif(self.mode == 1):
         loss_dict = {}
+###         temp_loss = []    #                   different, FCOS has this line active
         _ = self.detector(imgs, targets)
-        ImgDA_scores = self.ImageDA(self.base_feat['0'])
+        ImgDA_scores = self.ImageDA(self.base_feat['0'])    #different from FCOS
         loss_dict['DA_img_loss'] = self.reg_weights[0]*torch.nn.functional.cross_entropy(ImgDA_scores, batch[3].to(device=0))
         IDA_out = self.InsDA(self.box_features)
-        rep_factor = int(IDA_out.shape[0]/self.batch_size)
+        rep_factor = int(IDA_out.shape[0]/self.batch_size)        #different from FCOS
         ins_labels = batch[3].reshape(self.batch_size,1).repeat(1, rep_factor).reshape(IDA_out.shape[0])       
         loss_dict['DA_ins_loss'] = self.reg_weights[1]*torch.nn.functional.cross_entropy(IDA_out, ins_labels.to(device=0))
-        ExpImgDA_scores =ImgDA_scores.repeat(1, rep_factor).reshape(IDA_out.shape[0], self.num_domains)
-        loss_dict['Cst_loss'] = self.reg_weights[2]*torch.nn.functional.mse_loss(IDA_out, ExpImgDA_scores)       
+        ExpImgDA_scores =ImgDA_scores.repeat(1, rep_factor).reshape(IDA_out.shape[0], self.num_domains)  #diff fm FCOS
+        loss_dict['Cst_loss'] = self.reg_weights[2]*torch.nn.functional.mse_loss(IDA_out, ExpImgDA_scores) #diff fm FCOS  
         loss = sum(loss1 for loss1 in loss_dict.values())
         self.mode = 0
               
@@ -230,7 +232,7 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
       return {"loss": loss}#, "log": torch.stack(temp_loss).detach().cpu()}
 
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch, batch_idx):		#all same as FCOS
       img, boxes, labels, domain = batch
       preds = self.forward(img)
       targets = []
@@ -244,7 +246,7 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
       except:
         print(targets)
           
-    def on_validation_epoch_end(self):
+    def on_validation_epoch_end(self):				#all same as FCOS
       metrics = self.metric.compute()
       self.log('val_acc', metrics['map_50'])
       print(metrics['map_per_class'], metrics['map_50'])

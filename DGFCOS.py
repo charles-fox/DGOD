@@ -178,7 +178,7 @@ class DGFCOS(pytorch_lightning.core.module.LightningModule):
         if(self.exp == 'dg'):
           for index in batch:		   
             sample_indices.append(index)
-      return torch.utils.data.DataLoader(self.tr_dataset, batch_size=self.batch_size, sampler=sample_indices, shuffle=False, collate_fn=collate_fn, num_workers=16)      
+      return torch.utils.data.DataLoader(self.tr_dataset, batch_size=self.batch_size, sampler=sample_indices, shuffle=False, collate_fn=collate_fn, num_workers=4)         #CF was 16, use 4 for lower (12Gb) GPU       
           
     def training_step(self, batch, batch_idx):
       imgs = list(image.cuda() for image in batch[0])         #these lines are same as FRCNN 
@@ -271,7 +271,7 @@ class DGFCOS(pytorch_lightning.core.module.LightningModule):
       return {"loss": loss}#, "log": torch.stack(temp_loss).detach().cpu()}
 
 
-    #SAME
+    
     def validation_step(self, batch, batch_idx):
       img, boxes, labels, domain = batch
       preds = self.forward(img)
@@ -286,7 +286,7 @@ class DGFCOS(pytorch_lightning.core.module.LightningModule):
       except:
         print(targets)
    
-    #SAME
+    
     def on_validation_epoch_end(self):
       metrics = self.metric.compute()
       self.log('val_acc', metrics['map_50'])
