@@ -1,7 +1,7 @@
 #!/usr/bin/python -tt
 
 #Example run:
-# python3 train_driving_dg.py --exp dg --source_domains AC --target_domains A --weights_folder AC2A --weights_file ac2a_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
+# python3 train_driving_dg.py --model FRCNN --exp dg --source_domains AC --target_domains A --weights_folder AC2A --weights_file ac2a_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
 #Here, A,B,C refer to the datasets ADCD, DCC100K and Cityscapes.   
 #This command trains on datasets A and C and runs on dataset A.
 
@@ -28,6 +28,9 @@ import DGFCOS
 
 def parser_args():
   parser = argparse.ArgumentParser(description='Main Experiments')
+  parser.add_argument('--model', dest='model',
+                      help='FRCNN or FCOS',
+                      default='FRCNN', type=str)
   parser.add_argument('--exp', dest='exp',
                       help='non_dg or dg',
                       default='non_dg', type=str)
@@ -115,10 +118,9 @@ if __name__ == '__main__':
   args = parser_args()
   NET_FOLDER = args.weights_folder
   weights_file = args.weights_file  
-
   source_domains = args.source_domains.lower()
-  target_domains = args.target_domains.lower()
-  
+  target_domains = args.target_domains.lower() 
+  mymodel=args.model
   
   train_transform = albumentations.Compose(
         [
@@ -130,7 +132,6 @@ if __name__ == '__main__':
         bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20)
     )
 
-  mymodel="DGFCOS"   #TODO make this a cmd line arg
 
   if mymodel=="DGRCNN":
       val_transform = albumentations.Compose([
