@@ -1,7 +1,7 @@
 #!/usr/bin/python -tt
 
 #Example run:
-# python3 train_driving_dgfrcnn.py --exp dg --source_domains AC --target_domains A --weights_folder AC2A --weights_file ac2a_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
+# python3 train_driving_dg.py --exp dg --source_domains AC --target_domains A --weights_folder AC2A --weights_file ac2a_dgfrcnn --reg_weights 0.5 0.5 0.5 0.05 0.0001
 #Here, A,B,C refer to the datasets ADCD, DCC100K and Cityscapes.   
 #This command trains on datasets A and C and runs on dataset A.
 
@@ -21,8 +21,9 @@ import albumentations.pytorch
 import pytorch_lightning
 
 import DrivingDataset
+import DGcommon
 import DGFRCNN
-
+import DGFCOS
 
 
 def parser_args():
@@ -114,11 +115,7 @@ if __name__ == '__main__':
   args = parser_args()
   NET_FOLDER = args.weights_folder
   weights_file = args.weights_file  
-  if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
-    detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
-  else:	
-    if not os.path.exists(NET_FOLDER):
-      os.mkdir(NET_FOLDER, 0o777)
+
   source_domains = args.source_domains.lower()
   target_domains = args.target_domains.lower()
   
@@ -133,17 +130,29 @@ if __name__ == '__main__':
         bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20)
     )
 
-  val_transform = albumentations.Compose([
-    #albumentations.Resize(height=600, width=1200, p=1.0),
- albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
+  mymodel="DGRCNN"   #TODO make this a cmd line arg
+
+  if mymodel=="DGRCNN":
+      val_transform = albumentations.Compose([
+        albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
+  elif mymodel=="DGFCOS":
+      val_transform = albumentations.Compose([
+        albumentations.Resize(height=600, width=1200, p=1.0),
+        albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
 
   (tr_dataset, tr_datasets, vl_dataset, test_dataset) = datasetsFromArguments(source_domains, target_domains)
 
-  val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=DGFRCNN.collate_fn)
-  test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=DGFRCNN.collate_fn)
+  val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=DGcommon.collate_fn)
+  test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=DGcommon.collate_fn)
   
   detector = DGFRCNN.DGFRCNN(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)        #**CREATING THE DETECTOR**
   
+  if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
+    detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
+  else:	
+    if not os.path.exists(NET_FOLDER):
+      os.mkdir(NET_FOLDER, 0o777)
+ 
   early_stop_callback= pytorch_lightning.callbacks.early_stopping.EarlyStopping(monitor='val_acc', min_delta=0.00, patience=10, verbose=False, mode='max')
   checkpoint_callback = pytorch_lightning.callbacks.ModelCheckpoint(monitor='val_acc', dirpath=NET_FOLDER, filename=weights_file, mode='max')
   

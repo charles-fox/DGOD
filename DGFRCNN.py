@@ -1,43 +1,16 @@
-#!/usr/bin/python -tt
-
-from __future__ import absolute_import, division, print_function
-
-import math, sys, time, random, os
-import numpy as np
-
-import torch
-import torch.nn as nn
-import torchvision
-import torchmetrics
-import pytorch_lightning
-
+from DGcommon import *
 import fasterrcnn
 
-
-class GRLayer(torch.autograd.Function):
-    @staticmethod
-    def forward(ctx, input):
-        ctx.alpha=0.1
-        return input.view_as(input)
-
-    @staticmethod
-    def backward(ctx, grad_outputs):
-        output=grad_outputs.neg() * ctx.alpha
-        return output
-
-def grad_reverse(x):
-    return GRLayer.apply(x)
-    
 class _InstanceDA(torch.nn.Module):
     def __init__(self, num_domains):
         super(_InstanceDA,self).__init__()
         self.num_domains = num_domains
-        self.dc_ip1 = nn.Linear(1024, 512)
+        self.dc_ip1 = nn.Linear(1024, 512)     
         self.dc_relu1 = nn.ReLU()
         #self.dc_drop1 = nn.Dropout(p=0.5)
 
-        self.dc_ip2 = nn.Linear(512, 256)
-        self.dc_relu2 = nn.ReLU()
+        self.dc_ip2 = nn.Linear(512, 256)    #different from FCOS
+        self.dc_relu2 = nn.ReLU()            #different from FCOS
         #self.dc_drop2 = nn.Dropout(p=0.5)
 
         self.classifer=nn.Linear(256,self.num_domains)
@@ -45,25 +18,25 @@ class _InstanceDA(torch.nn.Module):
     def forward(self,x):
         x=grad_reverse(x)
         x=self.dc_relu1(self.dc_ip1(x))
-        x=self.dc_ip2(x)
-        x=torch.sigmoid(self.classifer(x))
+        x=self.dc_ip2(x)			#different from FCOS
+        x=torch.sigmoid(self.classifer(x))      #different from FCOS  
         return x
 
 class _InsClsPrime(torch.nn.Module):
     def __init__(self, num_cls):
         super(_InsClsPrime,self).__init__()
         self.num_cls = num_cls
-        self.dc_ip1 = nn.Linear(1024, 512)
+        self.dc_ip1 = nn.Linear(1024, 512)    #different sizes from FCOS
         self.dc_relu1 = nn.ReLU()
         #self.dc_drop1 = nn.Dropout(p=0.5)
 
-        self.dc_ip2 = nn.Linear(512, 256)
+        self.dc_ip2 = nn.Linear(512, 256)    #different sizes from FCOS
         self.dc_relu2 = nn.ReLU()
         #self.dc_drop2 = nn.Dropout(p=0.5)
 
-        self.classifer=nn.Linear(256,self.num_cls)
+        self.classifer=nn.Linear(256,self.num_cls)   #different sizes from FCOS
 
-    def forward(self,x):
+    def forward(self,x):     #same as FCOS
         x=grad_reverse(x)
         x=self.dc_relu1(self.dc_ip1(x))
         x=self.dc_ip2(x)
@@ -74,15 +47,15 @@ class _InsCls(torch.nn.Module):
     def __init__(self, num_cls):
         super(_InsCls,self).__init__()
         self.num_cls = num_cls
-        self.dc_ip1 = nn.Linear(1024, 512)
+        self.dc_ip1 = nn.Linear(1024, 512)      #different sizes from FCOS
         self.dc_relu1 = nn.ReLU()
         #self.dc_drop1 = nn.Dropout(p=0.5)
 
-        self.dc_ip2 = nn.Linear(512, 256)
+        self.dc_ip2 = nn.Linear(512, 256)       #different sizes from FCOS
         self.dc_relu2 = nn.ReLU()
         #self.dc_drop2 = nn.Dropout(p=0.5)
 
-        self.classifer=nn.Linear(256,self.num_cls)
+        self.classifer=nn.Linear(256,self.num_cls)   #different sizes from FCOS
 
     def forward(self,x):
         x=self.dc_relu1(self.dc_ip1(x))
@@ -90,94 +63,10 @@ class _InsCls(torch.nn.Module):
         x=torch.sigmoid(self.classifer(x))
         return x
 
-class _ImageDAFPN(torch.nn.Module):
-    def __init__(self,dim,num_domains):
-        super(_ImageDAFPN,self).__init__()
-        self.dim=dim  # feat layer          256*H*W for vgg16
-        self.num_domains = num_domains
-        self.Conv1 = nn.Conv2d(256, 256, 3, stride=(2,4))
-        self.Conv2 = nn.Conv2d(256, 256, 3, stride=4)
-        self.Conv3 = nn.Conv2d(256, 256, 3, stride=4)
-        self.Conv4 = nn.Conv2d(256, 256, 3, stride=3)
-        
-        self.flatten = nn.Flatten()
-        self.linear1 = nn.Linear(256, 128)
-        self.linear2 = nn.Linear(128, self.num_domains)
-        self.reLu=nn.ReLU(inplace=False)
-        
-        torch.nn.init.normal_(self.Conv1.weight, std=0.001)
-        torch.nn.init.constant_(self.Conv1.bias, 0)
-        torch.nn.init.normal_(self.Conv2.weight, std=0.001)
-        torch.nn.init.constant_(self.Conv2.bias, 0)
-        torch.nn.init.normal_(self.Conv3.weight, std=0.001)
-        torch.nn.init.constant_(self.Conv3.bias, 0)
-        torch.nn.init.normal_(self.Conv4.weight, std=0.001)
-        torch.nn.init.constant_(self.Conv4.bias, 0)
-    def forward(self,x):
-        x=grad_reverse(x)
-        x=self.reLu(self.Conv1(x))
-        x=self.reLu(self.Conv2(x))
-        x=self.reLu(self.Conv3(x))
-        x=self.reLu(self.Conv4(x))
-        x=self.flatten(x)
-        x=self.reLu(self.linear1(x))
-        x=torch.nn.functional.sigmoid(self.linear2(x))
-        return x
+
                      
-class _ImageDA(torch.nn.Module):
-    def __init__(self,dim,num_domains):
-        super(_ImageDA,self).__init__()
-        self.dim=dim  # feat layer          256*H*W for vgg16
-        self.num_domains = num_domains
-        self.Conv1 = nn.Conv2d(2048, 1024, 3, stride=(2,4))
-        self.Conv2 = nn.Conv2d(1024, 512, 3, stride=2)
-        self.Conv3 = nn.Conv2d(512, 256, 3, stride=2)
-        #self.Conv4 = nn.Conv2d(256, 128, 3, stride=2)
-        
-        self.flatten = nn.Flatten()
-        self.linear1 = nn.Linear(256, 128)
-        self.linear2 = nn.Linear(128, self.num_domains)
-        self.reLu=nn.ReLU(inplace=False)
-        
-        torch.nn.init.normal_(self.Conv1.weight, std=0.001)
-        torch.nn.init.constant_(self.Conv1.bias, 0)
-        torch.nn.init.normal_(self.Conv2.weight, std=0.001)
-        torch.nn.init.constant_(self.Conv2.bias, 0)
-        torch.nn.init.normal_(self.Conv3.weight, std=0.001)
-        torch.nn.init.constant_(self.Conv3.bias, 0)
-        #torch.nn.init.normal_(self.Conv4.weight, std=0.001)
-        #torch.nn.init.constant_(self.Conv4.bias, 0)
-    def forward(self,x):
-        x=grad_reverse(x)
-        x=self.reLu(self.Conv1(x))
-        x=self.reLu(self.Conv2(x))
-        x=self.reLu(self.Conv3(x))
-        #x=self.reLu(self.Conv4(x))
-        x=self.flatten(x)
-        x=self.reLu(self.linear1(x))
-        x=F.sigmoid(self.linear2(x))
-        return x
 
 
-
-def collate_fn(batch):
-    """
-    Since each image may have a different number of objects, we need a collate function (to be passed to the DataLoader).
-
-    :param batch: an iterable of N sets from __getitem__()
-    :return: a tensor of images, lists of varying-size tensors of bounding boxes, labels, and difficulties
-    """
-    images = list()
-    targets=list()
-    cls_labels = list()
-    domain = list()
-    for i, t, m, d in batch:
-        images.append(i)
-        targets.append(t)
-        cls_labels.append(m)
-        domain.append(d)
-    images = torch.stack(images, dim=0)
-    return images, targets, cls_labels, torch.tensor(domain)
 
 
 
