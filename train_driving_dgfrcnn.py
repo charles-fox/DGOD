@@ -171,10 +171,13 @@ class _ImageDA(torch.nn.Module):
 
 
 class DGFRCNN(pytorch_lightning.core.module.LightningModule):
-    def __init__(self,n_classes, batch_size, exp, reg_weights):
+    def __init__(self,n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets):
         super(DGFRCNN, self).__init__()
+        self.tr_dataset=tr_dataset
+        self.tr_datasets=tr_datasets
+
         self.n_classes = n_classes
-        self.num_domains = len(tr_datasets)
+        self.num_domains = len(self.tr_datasets)
         self.batch_size = batch_size
         self.exp = exp
         self.reg_weights = reg_weights
@@ -223,8 +226,8 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
       return [optimizer], [lr_scheduler]
     
     def train_dataloader(self):
-      num_train_sample_batches = len(tr_dataset)//self.batch_size
-      temp_indices = np.array([i for i in range(len(tr_dataset))])
+      num_train_sample_batches = len(self.tr_dataset)//self.batch_size
+      temp_indices = np.array([i for i in range(len(self.tr_dataset))])
       np.random.shuffle(temp_indices)
       sample_indices = []
       for i in range(num_train_sample_batches):
@@ -234,7 +237,7 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
         if(self.exp == 'dg'):
           for index in batch:		   #This is for mode 1
             sample_indices.append(index)
-      return torch.utils.data.DataLoader(tr_dataset, batch_size=self.batch_size, sampler=sample_indices, shuffle=False, collate_fn=collate_fn, num_workers=4) #CF was 16, use 4 for lower (12Gb) GPU      
+      return torch.utils.data.DataLoader(self.tr_dataset, batch_size=self.batch_size, sampler=sample_indices, shuffle=False, collate_fn=collate_fn, num_workers=4) #CF was 16, use 4 for lower (12Gb) GPU      
 
     def training_step(self, batch, batch_idx):
       imgs = list(image.cuda() for image in batch[0]) 
@@ -399,21 +402,21 @@ def collate_fn(batch):
     return images, targets, cls_labels, torch.tensor(domain)
 
  
-def datasetsFromArguments(args): 
+def datasetsFromArguments(source_domains, target_domains): 
   # Dataloader design based on input arguments
   # Training Dataset  
   tr_datasets = []
   domain_index = -1
-  if 'a' in args.source_domains.lower():
+  if 'a' in source_domains:
     domain_index = domain_index + 1
     tr_datasets.append(DrivingDataset.DrivingDataset('data/Annots/acdc_train_all.csv', root='data/ACDC/rgb_anon/', transform=train_transform, domain=domain_index))
-  if 'b' in args.source_domains.lower():
+  if 'b' in source_domains:
     domain_index = domain_index + 1
     tr_datasets.append(DrivingDataset.DrivingDataset('data/Annots/bdd10k_train_all.csv', root='data/BDD100K/images/10k/train/', transform=train_transform, domain=domain_index))
-  if 'c' in args.source_domains.lower():
+  if 'c' in source_domains:
     domain_index = domain_index + 1
     tr_datasets.append(DrivingDataset.DrivingDataset('data/Annots/cityscapes_train_all.csv', root='data/Cityscapes/leftImg8bit/train/', transform=train_transform, domain=domain_index))
-  if 'i' in args.source_domains.lower():
+  if 'i' in source_domains:
     domain_index = domain_index + 1
     tr_datasets.append(DrivingDataset('data/Annots/idd_train_all.csv', root='data/IDD/leftImg8bit/train/', transform=train_transform, domain=domain_index))
   tr_dataset = torch.utils.data.ConcatDataset(tr_datasets) # Combine all the source domains with their respective domain_index for training
@@ -421,16 +424,16 @@ def datasetsFromArguments(args):
   # Validation Dataset
   vl_datasets = []
   domain_index = -1
-  if 'a' in args.source_domains.lower():
+  if 'a' in source_domains:
     domain_index = domain_index + 1
     vl_datasets.append(DrivingDataset.DrivingDataset('data/Annots/acdc_val_all.csv', root='data/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
-  if 'b' in args.source_domains.lower():
+  if 'b' in source_domains:
     domain_index = domain_index + 1
     vl_datasets.append(DrivingDataset.DrivingDataset('data/Annots/bdd10k_val_all.csv', root='data/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
-  if 'c' in args.source_domains.lower():
+  if 'c' in source_domains:
     domain_index = domain_index + 1
     vl_datasets.append(DrivingDataset.DrivingDataset('data/Annots/cityscapes_val_all.csv', root='data/Cityscapes/leftImg8bit/val/', transform=val_transform, domain=domain_index))
-  if 'i' in args.source_domains.lower():
+  if 'i' in source_domains:
     domain_index = domain_index + 1
     vl_datasets.append(DrivingDataset.DrivingDataset('data/Annots/idd_val_all.csv', root='data/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
   vl_dataset = torch.utils.data.ConcatDataset(vl_datasets) # Combine all the source domains with their respective domain_index for validation
@@ -438,21 +441,21 @@ def datasetsFromArguments(args):
   # Test Dataset
   test_datasets = []
   domain_index = -1
-  if 'a' in args.target_domains.lower():
+  if 'a' in target_domains:
     domain_index = domain_index + 1
     test_datasets.append(DrivingDataset.DrivingDataset('data/Annots/acdc_val_all.csv', root='data/ACDC/rgb_anon/', transform=val_transform, domain=domain_index))
-  if 'b' in args.target_domains.lower():
+  if 'b' in target_domains:
     domain_index = domain_index + 1
     test_datasets.append(DrivingDataset.DrivingDataset('data/Annots/bdd10k_val_all.csv', root='data/BDD100K/images/10k/val/', transform=val_transform, domain=domain_index))
-  if 'c' in args.target_domains.lower():
+  if 'c' in target_domains:
     domain_index = domain_index + 1
     test_datasets.append(DrivingDataset.DrivingDataset('data/Annots/cityscapes_val_all.csv', root='data/Cityscapes/leftImg8bit/val/', transform=val_transform, domain=domain_index))
-  if 'i' in args.target_domains.lower():
+  if 'i' in target_domains:
     domain_index = domain_index + 1
     test_datasets.append(DrivingDataset.DrivingDataset('data/Annots/idd_val_all.csv', root='data/IDD/leftImg8bit/val/', transform=val_transform, domain=domain_index))
   test_dataset = torch.utils.data.ConcatDataset(test_datasets) # Combine all the source domains with their respective domain_index for Testing
   
-  return (tr_dataset, vl_dataset, test_dataset)
+  return (tr_dataset, tr_datasets, vl_dataset, test_dataset)
 
 
 
@@ -471,6 +474,9 @@ if __name__ == '__main__':
   else:	
     if not os.path.exists(NET_FOLDER):
       os.mkdir(NET_FOLDER, 0o777)
+  source_domains = args.source_domains.lower()
+  target_domains = args.target_domains.lower()
+  
 
   train_transform = albumentations.Compose(
         [
@@ -487,14 +493,14 @@ if __name__ == '__main__':
     albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
 
 
-  (tr_dataset, vl_dataset, test_dataset) = datasetsFromArguments(args)
+  (tr_dataset, tr_datasets, vl_dataset, test_dataset) = datasetsFromArguments(source_domains, target_domains)
 
 
 
   val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
   test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=collate_fn)
   
-  detector = DGFRCNN(9, 8, args.exp, args.reg_weights) # Num classes + 1 and batch_size         #**CREATING THE DETECTOR**
+  detector = DGFRCNN(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)        #**CREATING THE DETECTOR**
   
   early_stop_callback= pytorch_lightning.callbacks.early_stopping.EarlyStopping(monitor='val_acc', min_delta=0.00, patience=10, verbose=False, mode='max')
   checkpoint_callback = pytorch_lightning.callbacks.ModelCheckpoint(monitor='val_acc', dirpath=NET_FOLDER, filename=weights_file, mode='max')
