@@ -82,9 +82,9 @@ class ImageDAFPN(torch.nn.Module):
         
         
 class ImageDA(torch.nn.Module):
-    def __init__(self,dim,num_domains):		              #dim is different from FCOS  -- but isnt used
+    def __init__(self,num_domains):		              #CF: FCOS verson used to have an extra dim arg, but not used, so removed
         super(ImageDA,self).__init__()
-        self.dim=dim  # feat layer          256*H*W for vgg16
+#        self.dim=dim  # feat layer          256*H*W for vgg16
         self.num_domains = num_domains
         self.Conv1 = nn.Conv2d(2048, 1024, 3, stride=(2,4))
         self.Conv2 = nn.Conv2d(1024, 512, 3, stride=2)

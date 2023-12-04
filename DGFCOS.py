@@ -1,5 +1,6 @@
 from DGcommon import *
-    
+import fcos
+
 class InstanceDA(nn.Module):
     def __init__(self, num_domains):
         super(InstanceDA,self).__init__()

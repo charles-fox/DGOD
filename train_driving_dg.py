@@ -133,10 +133,10 @@ if __name__ == '__main__':
     )
 
 
-  if mymodel=="DGRCNN":
+  if mymodel=="FRCNN":
       val_transform = albumentations.Compose([
         albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
-  elif mymodel=="DGFCOS":
+  elif mymodel=="FCOS":
       val_transform = albumentations.Compose([
         albumentations.Resize(height=600, width=1200, p=1.0),
         albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
@@ -146,10 +146,10 @@ if __name__ == '__main__':
   val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=DGcommon.collate_fn)
   test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=DGcommon.collate_fn)
   
-  if mymodel=="DGRCNN":
+  if mymodel=="FRCNN":
     detector = DGFRCNN.DGFRCNN(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)        #**CREATING THE DETECTOR**
-  elif mymodel=="DGFCOS":
-    detector = DGFCOS(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)
+  elif mymodel=="FCOS":
+    detector = DGFCOS.DGFCOS(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)
 
   if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
     detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
