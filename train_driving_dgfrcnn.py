@@ -26,7 +26,7 @@ import DGFRCNN
 
 
 def parser_args():
-  parser = argparse.ArgumentParser(description='DGFRCNN Main Experiments')
+  parser = argparse.ArgumentParser(description='Main Experiments')
   parser.add_argument('--exp', dest='exp',
                       help='non_dg or dg',
                       default='non_dg', type=str)
@@ -63,7 +63,7 @@ def datasetsFromArguments(source_domains, target_domains):
     tr_datasets.append(DrivingDataset.DrivingDataset('data/Annots/cityscapes_train_all.csv', root='data/Cityscapes/leftImg8bit/train/', transform=train_transform, domain=domain_index))
   if 'i' in source_domains:
     domain_index = domain_index + 1
-    tr_datasets.append(DrivingDataset('data/Annots/idd_train_all.csv', root='data/IDD/leftImg8bit/train/', transform=train_transform, domain=domain_index))
+    tr_datasets.append(DrivingDataset.DrivingDataset('data/Annots/idd_train_all.csv', root='data/IDD/leftImg8bit/train/', transform=train_transform, domain=domain_index))
   tr_dataset = torch.utils.data.ConcatDataset(tr_datasets) # Combine all the source domains with their respective domain_index for training
     
   # Validation Dataset
@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
   val_transform = albumentations.Compose([
     #albumentations.Resize(height=600, width=1200, p=1.0),
-    albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
+ albumentations.pytorch.ToTensorV2(p=1.0),],p=1.0,bbox_params=albumentations.BboxParams(format='pascal_voc',label_fields=['class_labels'],min_area=20))
 
   (tr_dataset, tr_datasets, vl_dataset, test_dataset) = datasetsFromArguments(source_domains, target_domains)
 
@@ -151,5 +151,5 @@ if __name__ == '__main__':
   trainer.fit(detector, val_dataloaders=val_dataloader)
   
   detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
-  trainer = Trainer(accelerator="gpu", max_epochs=0, num_sanity_val_steps=-1)
+  trainer = pytorch_lightning.Trainer(accelerator="gpu", max_epochs=0, num_sanity_val_steps=-1)
   trainer.fit(detector, val_dataloaders=test_dataloader)
