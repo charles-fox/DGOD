@@ -146,8 +146,11 @@ if __name__ == '__main__':
   val_dataloader = torch.utils.data.DataLoader(vl_dataset, batch_size=1, shuffle=False,  collate_fn=DGcommon.collate_fn)
   test_dataloader = torch.utils.data.DataLoader(test_dataset, batch_size=1, shuffle=False,  collate_fn=DGcommon.collate_fn)
   
-  detector = DGFRCNN.DGFRCNN(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)        #**CREATING THE DETECTOR**
-  
+  if mymodel=="DGRCNN":
+    detector = DGFRCNN.DGFRCNN(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)        #**CREATING THE DETECTOR**
+  elif mymodel=="DGFCOS":
+    detector = DGFCOS(9, 8, args.exp, args.reg_weights,  tr_dataset, tr_datasets)
+
   if os.path.exists(NET_FOLDER+'/'+weights_file+'.ckpt'): 
     detector.load_state_dict(torch.load(NET_FOLDER+'/'+weights_file+'.ckpt')['state_dict'])
   else:	
