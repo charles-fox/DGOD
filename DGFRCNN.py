@@ -70,9 +70,9 @@ class InsCls(torch.nn.Module):
 
 
 
-class DGFRCNN(pytorch_lightning.core.module.LightningModule):
+class DGFRCNN(DGModel):
     def __init__(self,n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets):
-        super(DGFRCNN, self).__init__()
+        super().__init__(n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets)
         self.tr_dataset=tr_dataset
         self.tr_datasets=tr_datasets
         self.n_classes = n_classes
@@ -232,25 +232,7 @@ class DGFRCNN(pytorch_lightning.core.module.LightningModule):
       return {"loss": loss}#, "log": torch.stack(temp_loss).detach().cpu()}
 
 
-    def validation_step(self, batch, batch_idx):		#all same as FCOS
-      img, boxes, labels, domain = batch
-      preds = self.forward(img)
-      targets = []
-      for boxes, labels in zip(batch[1], batch[2]):
-        target= {}
-        target["boxes"] = boxes.float().cuda()
-        target["labels"] = labels.long().cuda() 
-        targets.append(target)
-      try:
-        self.metric.update(preds, targets)
-      except:
-        print(targets)
-          
-    def on_validation_epoch_end(self):				#all same as FCOS
-      metrics = self.metric.compute()
-      self.log('val_acc', metrics['map_50'])
-      print(metrics['map_per_class'], metrics['map_50'])
-      self.metric.reset()
+
 
 
 

@@ -108,9 +108,9 @@ def sigmoid_focal_loss(
 
  
 
-class DGFCOS(pytorch_lightning.core.module.LightningModule):
+class DGFCOS(DGModel):
     def __init__(self,n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets):
-        super(DGFCOS, self).__init__()
+        super().__init__(n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets)
         self.tr_dataset=tr_dataset
         self.tr_datasets=tr_datasets
         self.n_classes = n_classes
@@ -272,24 +272,3 @@ class DGFCOS(pytorch_lightning.core.module.LightningModule):
       return {"loss": loss}#, "log": torch.stack(temp_loss).detach().cpu()}
 
 
-    
-    def validation_step(self, batch, batch_idx):
-      img, boxes, labels, domain = batch
-      preds = self.forward(img)
-      targets = []
-      for boxes, labels in zip(batch[1], batch[2]):
-        target= {}
-        target["boxes"] = boxes.float().cuda()
-        target["labels"] = labels.long().cuda() 
-        targets.append(target)
-      try:
-        self.metric.update(preds, targets)
-      except:
-        print(targets)
-   
-    
-    def on_validation_epoch_end(self):
-      metrics = self.metric.compute()
-      self.log('val_acc', metrics['map_50'])
-      print(metrics['map_per_class'], metrics['map_50'])
-      self.metric.reset() 

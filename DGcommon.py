@@ -112,3 +112,29 @@ class ImageDA(torch.nn.Module):
         x=torch.sigmoid(self.linear2(x))
         return x
           
+class DGModel(pytorch_lightning.core.module.LightningModule):
+    def __init__(self,n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets):
+        super().__init__()
+        
+       
+    def validation_step(self, batch, batch_idx):		#all same as FCOS
+      img, boxes, labels, domain = batch
+      preds = self.forward(img)
+      targets = []
+      for boxes, labels in zip(batch[1], batch[2]):
+        target= {}
+        target["boxes"] = boxes.float().cuda()
+        target["labels"] = labels.long().cuda() 
+        targets.append(target)
+      try:
+        self.metric.update(preds, targets)
+      except:
+        print(targets)
+          
+    def on_validation_epoch_end(self):				#all same as FCOS
+      metrics = self.metric.compute()
+      self.log('val_acc', metrics['map_50'])
+      print(metrics['map_per_class'], metrics['map_50'])
+      self.metric.reset()
+        
+
