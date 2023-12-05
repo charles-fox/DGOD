@@ -115,7 +115,41 @@ class ImageDA(torch.nn.Module):
 class DGModel(pytorch_lightning.core.module.LightningModule):
     def __init__(self,n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets):
         super().__init__()
+        self.tr_dataset=tr_dataset
+        self.tr_datasets=tr_datasets
+        self.n_classes = n_classes
+        self.num_domains = len(self.tr_datasets)
+        self.batch_size = batch_size
+        self.exp = exp
+        self.reg_weights = reg_weights
+        self.best_val_acc = 0
+        self.log('val_acc', self.best_val_acc)
+        self.metric = torchmetrics.detection.MeanAveragePrecision(iou_type="bbox", class_metrics=True, iou_thresholds = [0.5])   
+        self.mode = 0
+        self.sub_mode = 0
+        self.momentum = 0.9 
         
+        
+    def forward(self, imgs,targets=None):		#same as FCOS
+      # Torchvision FasterRCNN returns the loss during training  and the boxes during eval
+      self.detector.eval()
+      return self.detector(imgs)
+        
+   
+    def train_dataloader(self):				#all SAME as FCOS
+      num_train_sample_batches = len(self.tr_dataset)//self.batch_size
+      temp_indices = np.array([i for i in range(len(self.tr_dataset))])
+      np.random.shuffle(temp_indices)
+      sample_indices = []
+      for i in range(num_train_sample_batches):
+        batch = temp_indices[self.batch_size*i:self.batch_size*(i+1)]
+        for index in batch:
+          sample_indices.append(index)  #This is for mode 0
+        if(self.exp == 'dg'):
+          for index in batch:		   #This is for mode 1
+            sample_indices.append(index)
+      return torch.utils.data.DataLoader(self.tr_dataset, batch_size=self.batch_size, sampler=sample_indices, shuffle=False, collate_fn=collate_fn, num_workers=4) #CF was 16, use 4 for lower (12Gb) GPU    
+   
        
     def validation_step(self, batch, batch_idx):		#all same as FCOS
       img, boxes, labels, domain = batch

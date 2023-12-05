@@ -73,34 +73,18 @@ class InsCls(torch.nn.Module):
 class DGFRCNN(DGModel):
     def __init__(self,n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets):
         super().__init__(n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets)
-        self.tr_dataset=tr_dataset
-        self.tr_datasets=tr_datasets
-        self.n_classes = n_classes
-        self.num_domains = len(self.tr_datasets)
-        self.batch_size = batch_size
-        self.exp = exp
-        self.reg_weights = reg_weights
-        
-        self.detector = fasterrcnn.fasterrcnn_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, pretrained=True, trainable_backbone_layers=3)               # different from FCOS, using FRCNN detector
-        
-        self.ImageDA = ImageDAFPN(256, self.num_domains)    # different from FCOS, using DAFPN rather than DA
+
         self.InsDA = InstanceDA(self.num_domains)       
-        self.InsCls = nn.ModuleList([InsCls(n_classes) for i in range(self.num_domains)])
-        self.InsClsPrime = nn.ModuleList([InsClsPrime(n_classes) for i in range(self.num_domains)])
-        
+        self.InsClsPrime = nn.ModuleList([InsClsPrime(self.n_classes) for i in range(self.num_domains)])
+        self.InsCls = nn.ModuleList([InsCls(self.n_classes) for i in range(self.num_domains)])
+
+        self.detector = fasterrcnn.fasterrcnn_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, pretrained=True, trainable_backbone_layers=3)               			# different from FCOS, using FRCNN detector        
+        self.detector.backbone.register_forward_hook(self.store_backbone_out)
+        self.detector.roi_heads.box_head.register_forward_hook(self.store_ins_features)   #diff from FCOS     
+        self.ImageDA = ImageDAFPN(256, self.num_domains)    	# different from FCOS, using DAFPN rather than DA
         self.base_lr = 2e-3 #Original base lr is 1e-4		# different from FCOS
-        self.momentum = 0.9
         self.weight_decay=0.0005				# different from FCOS
         
-        self.best_val_acc = 0
-        self.log('val_acc', self.best_val_acc)
-        self.metric = torchmetrics.detection.MeanAveragePrecision(iou_type="bbox", class_metrics=True, iou_thresholds = [0.5])        
-        
-        self.detector.backbone.register_forward_hook(self.store_backbone_out)
-        self.detector.roi_heads.box_head.register_forward_hook(self.store_ins_features)
-        
-        self.mode = 0
-        self.sub_mode = 0
       
     def store_ins_features(self, module, input1, output):     #not in FCOS
       self.box_features = output
@@ -109,12 +93,9 @@ class DGFRCNN(DGModel):
     def store_backbone_out(self, module, input1, output):      #different from FCOS
       self.base_feat = output
 
-    def forward(self, imgs,targets=None):		#same as FCOS
-      # Torchvision FasterRCNN returns the loss during training  and the boxes during eval
-      self.detector.eval()
-      return self.detector(imgs)
+
     
-    def configure_optimizers(self):                #all same as FCOS
+    def configure_optimizers(self):              ####different from FCOS -- using SGD on first line rather than ADAM
       optimizer = torch.optim.SGD([{'params': self.detector.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
                                     {'params': self.ImageDA.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
                                     {'params': self.InsDA.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
@@ -125,19 +106,7 @@ class DGFRCNN(DGModel):
                       'monitor': 'val_acc'}
       return [optimizer], [lr_scheduler]
     
-    def train_dataloader(self):				#all SAME as FCOS
-      num_train_sample_batches = len(self.tr_dataset)//self.batch_size
-      temp_indices = np.array([i for i in range(len(self.tr_dataset))])
-      np.random.shuffle(temp_indices)
-      sample_indices = []
-      for i in range(num_train_sample_batches):
-        batch = temp_indices[self.batch_size*i:self.batch_size*(i+1)]
-        for index in batch:
-          sample_indices.append(index)  #This is for mode 0
-        if(self.exp == 'dg'):
-          for index in batch:		   #This is for mode 1
-            sample_indices.append(index)
-      return torch.utils.data.DataLoader(self.tr_dataset, batch_size=self.batch_size, sampler=sample_indices, shuffle=False, collate_fn=collate_fn, num_workers=4) #CF was 16, use 4 for lower (12Gb) GPU      
+  
 
     def training_step(self, batch, batch_idx):
       imgs = list(image.cuda() for image in batch[0]) 

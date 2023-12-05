@@ -111,34 +111,19 @@ def sigmoid_focal_loss(
 class DGFCOS(DGModel):
     def __init__(self,n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets):
         super().__init__(n_classes, batch_size, exp, reg_weights, tr_dataset, tr_datasets)
-        self.tr_dataset=tr_dataset
-        self.tr_datasets=tr_datasets
-        self.n_classes = n_classes
-        self.n_domains = len(self.tr_datasets)
-        self.batch_size = batch_size
-        self.exp = exp
-        self.reg_weights = reg_weights
-      
-        self.detector = fcos.fcos_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, trainable_backbone_layers=3)
-          
-        self.ImageDA = ImageDA(self.n_domains)
-        self.InsDA = InstanceDA(self.n_domains)       
-        self.InsCls = nn.ModuleList([InsCls(self.n_classes) for i in range(self.n_domains)])
-        self.InsClsPrime = nn.ModuleList([InsClsPrime(self.n_classes) for i in range(self.n_domains)])
-    
-        self.best_val_acc = 0
-        self.log('val_acc', self.best_val_acc)
-        self.metric = torchmetrics.detection.MeanAveragePrecision(iou_type="bbox", class_metrics=True, iou_thresholds = [0.5])   
-
-        self.base_lr = 1e-4 
-        self.momentum = 0.9
-        self.weight_decay=0.0001
-        
+           
+        self.InsDA = InstanceDA(self.num_domains)       
+        self.InsClsPrime = nn.ModuleList([InsClsPrime(self.n_classes) for i in range(self.num_domains)])
+        self.InsCls = nn.ModuleList([InsCls(self.n_classes) for i in range(self.num_domains)])
+           
+        self.detector = fcos.fcos_resnet50_fpn(min_size=600, max_size=1200, num_classes=self.n_classes, trainable_backbone_layers=3)          
         self.detector.backbone.body.register_forward_hook(self.store_backbone_out)        
         self.detector.head.register_forward_hook(self.store_head_input)  #For instance level features
+        self.ImageDA = ImageDA(self.num_domains)     
+        self.base_lr = 1e-4 
+        self.weight_decay=0.0001
         
-        self.mode = 0
-        self.sub_mode = 0
+        
     
       
     def store_backbone_out(self, module, input1, output):
@@ -152,9 +137,7 @@ class DGFCOS(DGModel):
       temp4 = torch.reshape(input1[0][4], (input1[0][4].shape[0], input1[0][4].shape[1], input1[0][4].shape[2]*input1[0][4].shape[3]))
       self.ins_feat = torch.cat((temp0, temp1, temp2, temp3, temp4), -1).permute(0, 2, 1)
       
-    def forward(self, imgs,targets=None):
-      self.detector.eval()
-      return self.detector(imgs)
+
     
     def configure_optimizers(self):
       optimizer = torch.optim.Adam([{'params': self.detector.parameters(), 'lr': self.base_lr, 'weight_decay': self.weight_decay },
@@ -167,19 +150,7 @@ class DGFCOS(DGModel):
                       'monitor': 'val_acc'}
       return [optimizer], [lr_scheduler]
         
-    def train_dataloader(self):
-      num_train_sample_batches = len(self.tr_dataset)//self.batch_size
-      temp_indices = np.array([i for i in range(len(self.tr_dataset))])
-      np.random.shuffle(temp_indices)
-      sample_indices = []
-      for i in range(num_train_sample_batches):
-        batch = temp_indices[self.batch_size*i:self.batch_size*(i+1)]
-        for index in batch:
-          sample_indices.append(index)  
-        if(self.exp == 'dg'):
-          for index in batch:		   
-            sample_indices.append(index)
-      return torch.utils.data.DataLoader(self.tr_dataset, batch_size=self.batch_size, sampler=sample_indices, shuffle=False, collate_fn=collate_fn, num_workers=4)         #CF was 16, use 4 for lower (12Gb) GPU       
+
           
     def training_step(self, batch, batch_idx):
       imgs = list(image.cuda() for image in batch[0])         #these lines are same as FRCNN 
@@ -231,7 +202,7 @@ class DGFCOS(DGModel):
       elif(self.mode == 2): #Without recording the gradients for detector, we need to update the weights for classifier weights
         loss_dict = {}
         loss = []
-        for index in range(self.n_domains):
+        for index in range(self.num_domains):
           for param in self.InsCls[index].parameters(): param.requires_grad = True
         for index in range(len(imgs)):
           with torch.no_grad():
