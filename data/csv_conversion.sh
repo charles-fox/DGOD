@@ -1,3 +1,4 @@
+mkdir -p Annots
 python3 json2csv_bdd10k.py --image_set train
 echo BDD10K train annotations are converted
 python3 json2csv_bdd10k.py --image_set val
